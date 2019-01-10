@@ -1,0 +1,8 @@
+Wall 0
+Explosion 1
+Crate 2
+Player 2
+Bomb 3
+Powerup 4
+Slot 9
+Floor 10
