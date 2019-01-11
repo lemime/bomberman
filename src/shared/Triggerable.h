@@ -7,18 +7,14 @@
 
 class Triggerable {
 
-private:
-    float triggerTime;
-
 public:
+    float triggerTime;
 
     bool triggered = false;
 
     Triggerable(float triggerTime);
 
-    void setTriggerTime(float time);
-
-    float getTriggerTime();
+    void trigger();
 };
 
 #endif //BOMBERMAN_Triggerable_H

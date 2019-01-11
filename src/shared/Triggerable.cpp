@@ -6,12 +6,6 @@
 
 Triggerable::Triggerable(float triggerTime) : triggerTime(triggerTime) {}
 
-float Triggerable::getTriggerTime() {
-
-    return triggerTime;
-}
-
-void Triggerable::setTriggerTime(float time) {
-
-    triggerTime = time;
+void Triggerable::trigger() {
+    triggered = true;
 }

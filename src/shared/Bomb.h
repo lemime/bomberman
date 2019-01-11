@@ -11,7 +11,7 @@
 class Bomb : public BoardTileFragment, Triggerable {
 
 public:
-    Bomb(int x, int y, int explosionSize, float triggerTime);
+    Bomb(Board * board, int x, int y, int explosionSize, float triggerTime);
 
     int explosionSize;
 

@@ -18,7 +18,7 @@ private:
     int x, y;
 
 public:
-    BoardTile(int x, int y);
+    BoardTile(Board* board, int x, int y);
 
     std::string symbol();
 

@@ -11,7 +11,7 @@
 class Explosion : public BoardTileFragment, Triggerable {
 
 public:
-    Explosion(int x, int y, float triggerTime);
+    Explosion(Board * board, int x, int y, float triggerTime);
 
     void destroy(float currentTime) override {};
 };

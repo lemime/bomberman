@@ -10,7 +10,7 @@
 class Powerup : public BoardTileFragment {
 
 public:
-    Powerup(int type, int x, int y);
+    Powerup(Board * board, int type, int x, int y);
 };
 
 #endif //BOMBERMAN_POWERUP_H

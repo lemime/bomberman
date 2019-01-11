@@ -10,7 +10,7 @@
 class Slot : public BoardTileFragment {
 
 public:
-    Slot(int x, int y);
+    Slot(Board * board, int x, int y);
 
     void destroy(float currentTime) override {};
 };

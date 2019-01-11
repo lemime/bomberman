@@ -4,5 +4,5 @@
 
 #include "Bomb.h"
 
-Bomb::Bomb(int x, int y, int explosionSize, float triggerTime)
-        : explosionSize(explosionSize), BoardTileFragment(true, false, " d ", 3, x, y), Triggerable(triggerTime) {}
+Bomb::Bomb(Board * board, int x, int y, int explosionSize, float triggerTime)
+        : explosionSize(explosionSize), BoardTileFragment(board, true, false, " d ", 3, x, y), Triggerable(triggerTime) {}

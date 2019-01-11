@@ -11,7 +11,7 @@ class Wall : public BoardTileFragment {
 
 public:
 
-    Wall(int x, int y);
+    Wall(Board * board, int x, int y);
 
     void destroy(float currentTime) override {};
 };

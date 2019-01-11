@@ -4,9 +4,8 @@
 
 #include "BoardTile.h"
 
-BoardTile::BoardTile(int x, int y) {
-
-    push_back(new Floor(x, y));
+BoardTile::BoardTile(Board* board, int x, int y) {
+    push_back(new Floor(board, x, y));
 }
 
 std::string BoardTile::symbol() {

@@ -44,19 +44,19 @@ Board::Board(std::string path, CursesHelper *cursesHelper) : cursesHelper(curses
         tiles[i] = new BoardTile *[xSize];
         for (int j = 0; j < xSize; j++) {
             file >> type;
-            tiles[i][j] = new BoardTile(j, i);
+            tiles[i][j] = new BoardTile(this, j, i);
 
             switch (type) {
                 case 0 : {
-                    addFragment(new Wall(j, i));
+                    addFragment(new Wall(this, j, i));
                     break;
                 }
                 case 1 : {
-                    addFragment(new Crate(j, i));
+                    addFragment(new Crate(this, j, i));
                     break;
                 }
                 case 3 : {
-                    auto *slot = new Slot(j, i);
+                    auto *slot = new Slot(this, j, i);
                     slots.push_back(slot);
                     addFragment(slot);
                     break;
@@ -123,7 +123,7 @@ int Board::getSlotsSize() {
 void Board::explode(Bomb *bomb) {
 
     removeFragment(bomb);
-    auto *explosion = new Explosion(bomb->x, bomb->y, 0);
+    auto *explosion = new Explosion(this, bomb->x, bomb->y, 0);
     explosions.push_back(explosion);
     addFragment(explosion);
     spreadExplosion(bomb->x, bomb->y, 1, 0, bomb->explosionSize);
@@ -136,7 +136,7 @@ void Board::spreadExplosion(int x, int y, int x_offset, int y_offset, int explos
 
     if (explosionSize > 0) {
         if (x + x_offset >= 0 && x + x_offset < xSize && y + y_offset >= 0 && y + y_offset < ySize) {
-            auto *explosion = new Explosion(x + x_offset, y + y_offset, 0);
+            auto *explosion = new Explosion(this, x + x_offset, y + y_offset, 0);
             explosions.push_back(explosion);
             addFragment(explosion);
             if (tiles[y + y_offset][x + x_offset]->isPassable()) {
@@ -157,4 +157,13 @@ void Board::cleanExplosions() {
         delete explosion;
     }
     explosions.clear();
+}
+
+void Board::handleTriggerables(float currentTime) {
+
+    for (auto triggerable : triggerables) {
+        if (!triggerable->triggered && currentTime >= triggerable->triggerTime) {
+            triggerable->trigger();
+        }
+    }
 }

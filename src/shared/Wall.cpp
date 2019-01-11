@@ -4,4 +4,4 @@
 
 #include "Wall.h"
 
-Wall::Wall(int x, int y) : BoardTileFragment(false, false, "[|]", 0, x, y) {}
+Wall::Wall(Board * board, int x, int y) : BoardTileFragment(board, false, false, "[|]", 0, x, y) {}

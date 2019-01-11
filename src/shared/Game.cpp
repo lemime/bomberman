@@ -44,9 +44,7 @@ int Game::start() {
                 break;
             }
             case 'x': {
-                board->explode(bombs.at(0));
-                bombs.erase(std::find(bombs.begin(), bombs.end(), bombs.at(0)));
-                player->placedBombs--;
+                board->handleTriggerables(0);
                 break;
             }
             case 'w': {

@@ -68,6 +68,8 @@ public:
     void spreadExplosion(int x, int y, int x_offset, int y_offset, int explosionSize);
 
     void cleanExplosions();
+
+    void handleTriggerables(float currentTime);
 };
 
 #endif //BOMBERMAN_BOARD_H
