@@ -10,15 +10,10 @@
 #include <utility>
 #include <vector>
 
-class Board;
-
 class BoardTileFragment {
 
-protected:
-    Board *board;
-
 public:
-    BoardTileFragment(Board *board, bool isDestructible, bool isPassable, std::string symbol, int layer, int x, int y);
+    BoardTileFragment(bool isDestructible, bool isPassable, std::string symbol, int layer, int x, int y);
 
     bool isDestructible, isPassable;
 

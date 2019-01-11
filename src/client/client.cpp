@@ -55,9 +55,9 @@ int selectRoom(int chosen) {
 //    Get data from server
     int rooms = 3;
     auto *room = new Room(chosen, cursesHelper);
-    room->join(new Player(room->board, 1, "Gracz 1", 0, 0));
-    room->join(new Player(room->board, 2, "Gracz 2", 0, 0));
-    room->join(new Player(room->board, 3, "Gracz 3", 0, 0));
+    room->join(new Player(1, "Gracz 1", 0, 0));
+    room->join(new Player(2, "Gracz 2", 0, 0));
+    room->join(new Player(3, "Gracz 3", 0, 0));
     room->draw();
     delete room;
 
@@ -111,13 +111,13 @@ int startGame(int mapid) {
     cursesHelper->setContext(0);
 
     auto room = new Room(mapid, cursesHelper);
-    if(room->join(new Player(room->board, 1, "Gracz 1", 0, 0))) {
+    if(room->join(new Player(1, "Gracz 1", 0, 0))) {
         cursesHelper->print("Gracz 1 dołączył do gry");
     };
-    if(room->join(new Player(room->board, 2, "Gracz 2", 0, 0))) {
+    if(room->join(new Player(2, "Gracz 2", 0, 0))) {
         cursesHelper->print("Gracz 2 dołączył do gry");
     };
-    if(room->join(new Player(room->board, 3, "Gracz 2", 0, 0))) {
+    if(room->join(new Player(3, "Gracz 2", 0, 0))) {
         cursesHelper->print("Gracz 2 dołączył do gry");
     };
     room->startGame();

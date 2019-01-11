@@ -26,7 +26,7 @@ public:
 
     int placedBombs = 0;
 
-    Player(Board * board, int id, std::string name, int x, int y);
+    Player(int id, std::string name, int x, int y);
 
     Bomb *spawnBomb(float currentTime);
 

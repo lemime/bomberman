@@ -16,4 +16,4 @@ std::string getPowerupSymbol(int type) {
     }
 }
 
-Powerup::Powerup(Board * board, int type, int x, int y) : BoardTileFragment(board, false, true, getPowerupSymbol(type), 4, x, y) {}
+Powerup::Powerup(int type, int x, int y) : BoardTileFragment(false, true, getPowerupSymbol(type), 4, x, y) {}

@@ -10,7 +10,7 @@
 class Floor : public BoardTileFragment {
 
 public:
-    Floor(Board * board, int x, int y);
+    Floor(int x, int y);
 
     void destroy(float currentTime) override {};
 };
