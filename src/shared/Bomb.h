@@ -5,18 +5,17 @@
 #ifndef BOMBERMAN_BOMB_H
 #define BOMBERMAN_BOMB_H
 
-
 #include "BoardTileFragment.h"
+#include "Triggerable.h"
 
-class Bomb : public BoardTileFragment {
-private:
+class Bomb : public BoardTileFragment, Triggerable {
+
 public:
-    Bomb(int x, int y, int explosionSize);
+    Bomb(int x, int y, int explosionSize, float triggerTime);
 
     int explosionSize;
 
-    void destroy() override {};
+    void destroy(float currentTime) override {};
 };
-
 
 #endif //BOMBERMAN_BOMB_H

@@ -2,12 +2,11 @@
 // Created by Kamila Kolenda on 2019-01-03.
 //
 
-#include <iostream>
 #include "CursesHelper.h"
 
 CursesHelper::CursesHelper() {
+
     initscr();
-    raw();
     keypad(stdscr, TRUE);
     noecho();
 
@@ -21,6 +20,7 @@ CursesHelper::CursesHelper() {
 }
 
 CursesHelper::~CursesHelper() {
+
     endwin();
 }
 
@@ -56,21 +56,23 @@ int CursesHelper::handleSelection(std::vector<std::string> options) {
 }
 
 void CursesHelper::bold(bool on) {
+
     on ? wattron(currentWindow, A_BOLD) : wattroff(currentWindow, A_BOLD);
 }
 
 void CursesHelper::invert(bool on) {
+
     on ? wattron(currentWindow, A_REVERSE) : wattroff(currentWindow, A_REVERSE);
 }
 
 void CursesHelper::printOptions(std::vector<std::string> options, int cursorPos) {
+
     int i = 0;
     for (const auto &option : options) {
         if (cursorPos == i) {
             invert(true);
         }
         print(option + "\n");
-
         if (cursorPos == i) {
             invert(false);
         }
@@ -79,11 +81,13 @@ void CursesHelper::printOptions(std::vector<std::string> options, int cursorPos)
 }
 
 void CursesHelper::print(std::string text) {
+
     wprintw(currentWindow, text.c_str());
     wrefresh(currentWindow);
 }
 
 void CursesHelper::printAtCenter(std::string text) {
+
     int wincols, winrows;
     getmaxyx(currentWindow, winrows, wincols);
     mvwprintw(currentWindow, winrows / 2, static_cast<int>((wincols - text.size()) / 2), text.c_str());
@@ -91,9 +95,11 @@ void CursesHelper::printAtCenter(std::string text) {
 }
 
 void CursesHelper::clear() {
+
     wclear(currentWindow);
 }
 
 void CursesHelper::setContext(int window) {
+
     currentWindow = windowHelper->getWindowAt(window);
 }

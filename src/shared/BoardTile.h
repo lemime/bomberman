@@ -5,14 +5,18 @@
 #ifndef BOMBERMAN_BOARDTILE_H
 #define BOMBERMAN_BOARDTILE_H
 
-
+#include <algorithm>
+#include <iostream>
 #include <vector>
+
 #include "BoardTileFragment.h"
+#include "Floor.h"
 
 class BoardTile : public std::vector<BoardTileFragment *> {
+
 private:
-    int x;
-    int y;
+    int x, y;
+
 public:
     BoardTile(int x, int y);
 
@@ -22,8 +26,7 @@ public:
 
     bool isPassable();
 
-    void destroy();
+    void destroy(float currentTime);
 };
-
 
 #endif //BOMBERMAN_BOARDTILE_H

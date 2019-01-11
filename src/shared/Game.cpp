@@ -4,16 +4,14 @@
 
 #include "Game.h"
 
-Game::Game(CursesHelper *cursesHelper, Board *board) : cursesHelper(cursesHelper), board(board) {
-
-}
+Game::Game(CursesHelper *cursesHelper, Board *board) : cursesHelper(cursesHelper), board(board) {}
 
 int Game::start() {
+
     int keyVal;
 
-    Player *player = players.front();
-
-    Player *player2 = players.at(1);
+    Player *player = getPlayer(0);
+    Player *player2 = getPlayer(1);
 
     while (true) {
         cursesHelper->clear();
@@ -38,7 +36,7 @@ int Game::start() {
                 break;
             }
             case ' ': {
-                Bomb *bomb = player->spawnBomb();
+                Bomb *bomb = player->spawnBomb(0);
                 if (bomb != nullptr) {
                     board->addFragment(bomb);
                     bombs.push_back(bomb);
@@ -82,6 +80,12 @@ int Game::start() {
 }
 
 void Game::spawnPlayer(Player *player) {
+
     players.push_back(player);
     board->spawnPlayer(player);
+}
+
+Player *Game::getPlayer(int id) {
+
+    return players.at(0);
 }

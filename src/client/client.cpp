@@ -1,11 +1,8 @@
+//
+// Created by Kamila Kolenda on 2018-12-31.
+//
 
-#include <list>
-#include <iostream>
-#include <vector>
-#include "../shared/CursesHelper.h"
-#include "../shared/Board.h"
-#include "../shared/Room.h"
-#include "../shared/Game.h"
+#include "client.h"
 
 CursesHelper *cursesHelper;
 
@@ -23,6 +20,7 @@ int selectMap(int chosen) {
     cursesHelper->setContext(1);
     Board *board = new Board(maps.at(static_cast<unsigned long>(chosen)), cursesHelper);
     board->printStats();
+    board->draw();
     delete board;
     cursesHelper->setContext(0);
     switch (cursesHelper->handleSelection(mapOptions)) {

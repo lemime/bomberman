@@ -5,12 +5,15 @@
 #ifndef BOMBERMAN_CURSESHELPER_H
 #define BOMBERMAN_CURSESHELPER_H
 
+#include <iostream>
 #include <ncurses.h>
 #include <string>
 #include <vector>
+
 #include "WindowHelper.h"
 
 class CursesHelper {
+
 private:
     WINDOW *currentWindow;
 
@@ -37,6 +40,5 @@ public:
 
     void setContext(int window);
 };
-
 
 #endif //BOMBERMAN_CURSESHELPER_H

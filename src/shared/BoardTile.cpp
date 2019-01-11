@@ -2,16 +2,15 @@
 // Created by Kamila Kolenda on 2019-01-02.
 //
 
-#include <iostream>
-#include <algorithm>
 #include "BoardTile.h"
-#include "Floor.h"
 
 BoardTile::BoardTile(int x, int y) {
+
     push_back(new Floor(x, y));
 }
 
 std::string BoardTile::symbol() {
+
     std::string symbol;
     int temp = -1;
     for (auto tile : *this) {
@@ -22,11 +21,10 @@ std::string BoardTile::symbol() {
     }
 
     return symbol;
-//    return isPassable() ? " + " : " - ";
-
 }
 
 bool BoardTile::isDestructible() {
+
     for (auto tile : *this) {
         if (tile->isDestructible) {
             return true;
@@ -37,6 +35,7 @@ bool BoardTile::isDestructible() {
 }
 
 bool BoardTile::isPassable() {
+
     for (auto tile : *this) {
         if (!tile->isPassable) {
             return false;
@@ -46,11 +45,15 @@ bool BoardTile::isPassable() {
     return true;
 }
 
-void BoardTile::destroy() {
+void BoardTile::destroy(float currentTime) {
+
     for (auto tile : *this) {
         if (tile->isDestructible) {
-            tile->destroy();
+            tile->destroy(currentTime);
         }
     }
-    erase(std::remove_if(begin(), end(), [](auto tile) { return tile->isDestructible; }), end());
+
+    erase(std::remove_if(begin(), end(), [](auto tile) {
+        return tile->isDestructible;
+    }), end());
 }

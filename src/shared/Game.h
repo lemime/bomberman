@@ -5,27 +5,33 @@
 #ifndef BOMBERMAN_GAME_H
 #define BOMBERMAN_GAME_H
 
-
-#include "CursesHelper.h"
-#include "Board.h"
-#include "Player.h"
-#include "Bomb.h"
-#include <vector>
 #include <algorithm>
+#include <vector>
+
+#include "Board.h"
+#include "Bomb.h"
+#include "CursesHelper.h"
+#include "Player.h"
 
 class Game {
+
 private:
     CursesHelper *cursesHelper;
+
     Board *board;
+
     std::vector<Player *> players;
+
     std::vector<Bomb *> bombs;
+
 public:
     Game(CursesHelper *cursesHelper, Board *board);
 
     int start();
 
     void spawnPlayer(Player *player);
-};
 
+    Player *getPlayer(int id);
+};
 
 #endif //BOMBERMAN_GAME_H

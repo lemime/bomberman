@@ -5,15 +5,15 @@
 #ifndef BOMBERMAN_EXPLOSION_H
 #define BOMBERMAN_EXPLOSION_H
 
-
 #include "BoardTileFragment.h"
+#include "Triggerable.h"
 
-class Explosion : public BoardTileFragment {
+class Explosion : public BoardTileFragment, Triggerable {
+
 public:
-    Explosion(int x, int y);
+    Explosion(int x, int y, float triggerTime);
 
-    void destroy() override {};
+    void destroy(float currentTime) override {};
 };
-
 
 #endif //BOMBERMAN_EXPLOSION_H

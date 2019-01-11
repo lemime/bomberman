@@ -1,9 +1,9 @@
-#include <iostream>
-#include "../shared/Board.h"
+//
+// Created by Kamila Kolenda on 2018-12-31.
+//
+
+#include "server.h"
 
 int main() {
-//    auto board = new Board("../shared/map_1.txt");
-//    board->draw();
-
     return 0;
 }

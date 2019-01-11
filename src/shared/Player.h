@@ -5,27 +5,32 @@
 #ifndef BOMBERMAN_PLAYER_H
 #define BOMBERMAN_PLAYER_H
 
-
-#include "BoardTileFragment.h"
-#include "../shared/Bomb.h"
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "BoardTileFragment.h"
+#include "Bomb.h"
+
 class Player : public BoardTileFragment {
+
 private:
     int id;
+
     int maxBombs;
+
     int explosionSize;
+
 public:
     std::string name;
+
     int placedBombs = 0;
 
     Player(int id, std::string name, int x, int y);
 
-    Bomb *spawnBomb();
+    Bomb *spawnBomb(float currentTime);
 
-    void destroy();
+    void destroy(float currentTime) override;
 };
-
 
 #endif //BOMBERMAN_PLAYER_H

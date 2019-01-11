@@ -4,7 +4,4 @@
 
 #include "Crate.h"
 
-Crate::Crate(int x, int y) : BoardTileFragment(true, false, " . ", 2, x, y) {
-
-
-}
+Crate::Crate(int x, int y) : BoardTileFragment(true, false, " . ", 2, x, y) {}

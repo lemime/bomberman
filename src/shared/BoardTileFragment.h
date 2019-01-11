@@ -5,22 +5,23 @@
 #ifndef BOMBERMAN_BOARDTILEFRAGMENT_H
 #define BOMBERMAN_BOARDTILEFRAGMENT_H
 
-
+#include <iostream>
 #include <string>
+#include <utility>
+#include <vector>
 
 class BoardTileFragment {
+
 public:
     BoardTileFragment(bool isDestructible, bool isPassable, std::string symbol, int layer, int x, int y);
 
-    bool isDestructible;
-    bool isPassable;
+    bool isDestructible, isPassable;
+
+    int layer, x, y;
+
     std::string symbol;
-    int layer;
 
-    int x;
-    int y;
-
-    virtual void destroy() = 0;
+    virtual void destroy(float currentTime) = 0;
 };
 
 #endif //BOMBERMAN_BOARDTILE_H

@@ -5,15 +5,14 @@
 #ifndef BOMBERMAN_SLOT_H
 #define BOMBERMAN_SLOT_H
 
-
 #include "BoardTileFragment.h"
 
 class Slot : public BoardTileFragment {
+
 public:
     Slot(int x, int y);
 
-    void destroy() override {};
+    void destroy(float currentTime) override {};
 };
-
 
 #endif //BOMBERMAN_SLOT_H

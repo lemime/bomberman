@@ -5,16 +5,19 @@
 #ifndef BOMBERMAN_WINDOWHELPER_H
 #define BOMBERMAN_WINDOWHELPER_H
 
-
 #include <ncurses.h>
-#include <vector>
 #include <string>
+#include <vector>
 
 class WindowHelper {
+
 private:
     std::vector<WINDOW *> windows;
+
     int nlines, ncols;
+
     int x_margin = 2;
+
     int y_margin = 1;
 
 public:
@@ -28,6 +31,5 @@ public:
 
     void hideWindow(WINDOW *window);
 };
-
 
 #endif //BOMBERMAN_WINDOWHELPER_H

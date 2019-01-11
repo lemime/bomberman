@@ -5,6 +5,7 @@
 #include "Powerup.h"
 
 std::string getPowerupSymbol(int type) {
+
     switch (type) {
         case 0 : {
             return " * ";
@@ -15,6 +16,4 @@ std::string getPowerupSymbol(int type) {
     }
 }
 
-Powerup::Powerup(int type, int x, int y) : BoardTileFragment(false, true, getPowerupSymbol(type), 4, x, y) {
-
-}
+Powerup::Powerup(int type, int x, int y) : BoardTileFragment(false, true, getPowerupSymbol(type), 4, x, y) {}
