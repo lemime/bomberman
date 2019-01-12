@@ -34,6 +34,8 @@ public:
     bool isAlive();
 
     bool destroy(float currentTime) override;
+
+    bool checkId(int id);
 };
 
 #endif //BOMBERMAN_PLAYER_H

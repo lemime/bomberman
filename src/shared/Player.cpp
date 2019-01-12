@@ -13,14 +13,22 @@ Player::Player(int id, std::string name, int x, int y)
 
 bool Player::canPlaceBomb() {
 
-    return maxBombs > placedBombs;
+    return maxBombs > placedBombs && isAlive();
 }
 
 bool Player::destroy(float currentTime) {
+
+    lives--;
     symbol = " x ";
     return false;
 }
 
 bool Player::isAlive() {
+
     return lives > 0;
+}
+
+bool Player::checkId(int _id) {
+
+    return _id == id;
 }

@@ -11,7 +11,6 @@ int Game::start() {
     int keyVal;
 
     Player *player = getPlayer(0);
-    Player *player2 = getPlayer(1);
 
     while (true) {
         cursesHelper->clear();
@@ -19,69 +18,72 @@ int Game::start() {
         keyVal = getch();
 
         switch (keyVal) {
-            case KEY_UP: {
-                if (player->isAlive()) {
-                    board->moveFragment(player, player->x, player->y - 1);
-                }
-                break;
-            }
-            case KEY_DOWN: {
-                if (player->isAlive()) {
-                    board->moveFragment(player, player->x, player->y + 1);
-                }
-                break;
-            }
-            case KEY_LEFT: {
-                if (player->isAlive()) {
-                    board->moveFragment(player, player->x - 1, player->y);
-                }
-                break;
-            }
-            case KEY_RIGHT: {
-                if (player->isAlive()) {
-                    board->moveFragment(player, player->x + 1, player->y);
-                }
-                break;
-            }
-            case ' ': {
-                if (player->canPlaceBomb()) {
-                    board->spawnBomb(new Bomb(player, 0));
-                }
-                break;
-            }
-            case 'x': {
-                board->createExplosions();
-                break;
-            }
-            case 't': {
-                board->handleTriggerables(0);
-                break;
-            }
-            case 'w': {
-                board->moveFragment(player2, player2->x, player2->y - 1);
-                break;
-            }
-            case 'c': {
-                board->cleanExplosions();
-                break;
-            }
-            case 's': {
-                board->moveFragment(player2, player2->x, player2->y + 1);
+            case 'q': {
+                player = getPlayer(1);
                 break;
             }
             case 'a': {
-                board->moveFragment(player2, player2->x - 1, player2->y);
-                break;
-            }
-            case 'd': {
-                board->moveFragment(player2, player2->x + 1, player2->y);
+                player = getPlayer(2);
                 break;
             }
             case 127: {
                 return -1;
-            }
+            };
             default: {
                 break;
+            };
+        }
+
+        if (player) {
+            switch (keyVal) {
+                case KEY_UP: {
+                    if (player->isAlive()) {
+                        board->moveFragment(player, player->x, player->y - 1);
+                    }
+                    break;
+                }
+                case KEY_DOWN: {
+                    if (player->isAlive()) {
+                        board->moveFragment(player, player->x, player->y + 1);
+                    }
+                    break;
+                }
+                case KEY_LEFT: {
+                    if (player->isAlive()) {
+                        board->moveFragment(player, player->x - 1, player->y);
+                    }
+                    break;
+                }
+                case KEY_RIGHT: {
+                    if (player->isAlive()) {
+                        board->moveFragment(player, player->x + 1, player->y);
+                    }
+                    break;
+                }
+                case ' ': {
+                    if (player->canPlaceBomb()) {
+                        board->spawnBomb(new Bomb(player, 0));
+                    }
+                    break;
+                }
+
+                case 'x': {
+                    board->createExplosions();
+                    break;
+                }
+
+                case 't': {
+                    board->handleTriggerables(0);
+                    break;
+                }
+
+                case 'c': {
+                    board->cleanExplosions();
+                    break;
+                }
+                default: {
+                    break;
+                }
             }
         }
     };
@@ -95,5 +97,10 @@ void Game::spawnPlayer(Player *player) {
 
 Player *Game::getPlayer(int id) {
 
-    return players.at(0);
+    for (auto player: players) {
+        if (player->checkId(id)) {
+            return player;
+        };
+    }
+    return nullptr;
 }
