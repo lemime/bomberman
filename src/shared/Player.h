@@ -10,27 +10,30 @@
 #include <vector>
 
 #include "BoardTileFragment.h"
-#include "Bomb.h"
 
 class Player : public BoardTileFragment {
 
 private:
     int id;
 
+public:
+    std::string name;
+
     int maxBombs;
 
     int explosionSize;
 
-public:
-    std::string name;
-
     int placedBombs = 0;
+
+    int lives = 1;
 
     Player(int id, std::string name, int x, int y);
 
-    Bomb *spawnBomb(float currentTime);
+    bool canPlaceBomb();
 
-    void destroy(float currentTime) override;
+    bool isAlive();
+
+    bool destroy(float currentTime) override;
 };
 
 #endif //BOMBERMAN_PLAYER_H

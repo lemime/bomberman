@@ -7,15 +7,19 @@
 
 #include "BoardTileFragment.h"
 #include "Triggerable.h"
+#include "Player.h"
 
-class Bomb : public BoardTileFragment, Triggerable {
+class Bomb : public BoardTileFragment, public Triggerable {
+
+private:
+    Player *player;
 
 public:
-    Bomb(int x, int y, int explosionSize, float triggerTime);
+    Bomb(Player *player, float triggerTime);
 
     int explosionSize;
 
-    void destroy(float currentTime) override {};
+    bool destroy(float currentTime) override;
 };
 
 #endif //BOMBERMAN_BOMB_H

@@ -103,6 +103,20 @@ void Board::moveFragment(BoardTileFragment *fragment, int x, int y) {
     }
 }
 
+void Board::spawnBomb(Bomb *bomb) {
+
+    addFragment(bomb);
+    bombs.push_back(bomb);
+    triggerables.push_back(bomb);
+}
+
+void Board::spawnExplosion(Explosion *explosion) {
+
+    addFragment(explosion);
+    explosions.push_back(explosion);
+    triggerables.push_back(explosion);
+}
+
 void Board::spawnPlayer(Player *player) {
 
     for (auto slot : slots) {
@@ -120,50 +134,60 @@ int Board::getSlotsSize() {
     return static_cast<int>(slots.size());
 }
 
-void Board::explode(Bomb *bomb) {
+void Board::createExplosions() {
 
-    removeFragment(bomb);
-    auto *explosion = new Explosion(bomb->x, bomb->y, 0);
-    explosions.push_back(explosion);
-    addFragment(explosion);
-    spreadExplosion(bomb->x, bomb->y, 1, 0, bomb->explosionSize);
-    spreadExplosion(bomb->x, bomb->y, -1, 0, bomb->explosionSize);
-    spreadExplosion(bomb->x, bomb->y, 0, 1, bomb->explosionSize);
-    spreadExplosion(bomb->x, bomb->y, 0, -1, bomb->explosionSize);
+    bombs.erase(std::remove_if(bombs.begin(), bombs.end(), [this](auto bomb) {
+        if (bomb->triggered) {
+            spreadExplosion(bomb->x, bomb->y, 0, 0, bomb->explosionSize);
+            spreadExplosion(bomb->x, bomb->y, 1, 0, bomb->explosionSize);
+            spreadExplosion(bomb->x, bomb->y, -1, 0, bomb->explosionSize);
+            spreadExplosion(bomb->x, bomb->y, 0, 1, bomb->explosionSize);
+            spreadExplosion(bomb->x, bomb->y, 0, -1, bomb->explosionSize);
+            removeFragment(bomb);
+            delete bomb;
+            return true;
+        }
+        return false;
+    }), bombs.end());
 }
 
 void Board::spreadExplosion(int x, int y, int x_offset, int y_offset, int explosionSize) {
 
-    if (explosionSize > 0) {
-        if (x + x_offset >= 0 && x + x_offset < xSize && y + y_offset >= 0 && y + y_offset < ySize) {
-            auto *explosion = new Explosion(x + x_offset, y + y_offset, 0);
-            explosions.push_back(explosion);
-            addFragment(explosion);
-            if (tiles[y + y_offset][x + x_offset]->isPassable()) {
-                spreadExplosion(x + x_offset, y + y_offset, x_offset, y_offset, explosionSize - 1);
-            }
-            if (tiles[y + y_offset][x + x_offset]->isDestructible()) {
-                tiles[y + y_offset][x + x_offset]->destroy(0);
-            }
-        };
+    if (explosionSize > 0 && x + x_offset >= 0 && x + x_offset < xSize && y + y_offset >= 0 && y + y_offset < ySize) {
+        BoardTile *tile = tiles[y + y_offset][x + x_offset];
+        if (tile->isPassable() || tile->isDestructible()) {
+            spawnExplosion(new Explosion(x + x_offset, y + y_offset, 0));
+        }
 
-    }
+        if (tile->isPassable()) {
+            spreadExplosion(x + x_offset, y + y_offset, x_offset, y_offset, explosionSize - 1);
+        }
+
+        if (tile->isDestructible()) {
+            tile->destroy(0);
+        }
+    };
 }
 
 void Board::cleanExplosions() {
 
-    for (auto explosion : explosions) {
-        removeFragment(explosion);
-        delete explosion;
-    }
-    explosions.clear();
+    explosions.erase(std::remove_if(explosions.begin(), explosions.end(), [this](auto explosion) {
+        if (explosion->triggered) {
+            removeFragment(explosion);
+            delete explosion;
+            return true;
+        }
+        return false;
+    }), explosions.end());
 }
 
 void Board::handleTriggerables(float currentTime) {
 
-    for (auto triggerable : triggerables) {
+    triggerables.erase(std::remove_if(triggerables.begin(), triggerables.end(), [this, currentTime](auto triggerable) {
         if (!triggerable->triggered && currentTime >= triggerable->triggerTime) {
             triggerable->trigger();
+            return true;
         }
-    }
+        return false;
+    }), triggerables.end());
 }

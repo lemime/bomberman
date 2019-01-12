@@ -4,5 +4,13 @@
 
 #include "Bomb.h"
 
-Bomb::Bomb(int x, int y, int explosionSize, float triggerTime)
-        : explosionSize(explosionSize), BoardTileFragment(true, false, " d ", 3, x, y), Triggerable(triggerTime) {}
+Bomb::Bomb(Player *player, float triggerTime)
+        : player(player), explosionSize(player->explosionSize),
+          BoardTileFragment(true, false, " d ", 3, player->x, player->y), Triggerable(triggerTime) {
+    player->placedBombs++;
+}
+
+bool Bomb::destroy(float currentTime) {
+    player->placedBombs--;
+    return false;
+}

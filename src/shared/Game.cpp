@@ -20,30 +20,40 @@ int Game::start() {
 
         switch (keyVal) {
             case KEY_UP: {
-                board->moveFragment(player, player->x, player->y - 1);
+                if (player->isAlive()) {
+                    board->moveFragment(player, player->x, player->y - 1);
+                }
                 break;
             }
             case KEY_DOWN: {
-                board->moveFragment(player, player->x, player->y + 1);
+                if (player->isAlive()) {
+                    board->moveFragment(player, player->x, player->y + 1);
+                }
                 break;
             }
             case KEY_LEFT: {
-                board->moveFragment(player, player->x - 1, player->y);
+                if (player->isAlive()) {
+                    board->moveFragment(player, player->x - 1, player->y);
+                }
                 break;
             }
             case KEY_RIGHT: {
-                board->moveFragment(player, player->x + 1, player->y);
+                if (player->isAlive()) {
+                    board->moveFragment(player, player->x + 1, player->y);
+                }
                 break;
             }
             case ' ': {
-                Bomb *bomb = player->spawnBomb(0);
-                if (bomb != nullptr) {
-                    board->addFragment(bomb);
-                    bombs.push_back(bomb);
+                if (player->canPlaceBomb()) {
+                    board->spawnBomb(new Bomb(player, 0));
                 }
                 break;
             }
             case 'x': {
+                board->createExplosions();
+                break;
+            }
+            case 't': {
                 board->handleTriggerables(0);
                 break;
             }

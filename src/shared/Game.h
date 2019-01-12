@@ -22,8 +22,6 @@ private:
 
     std::vector<Player *> players;
 
-    std::vector<Bomb *> bombs;
-
 public:
     Game(CursesHelper *cursesHelper, Board *board);
 

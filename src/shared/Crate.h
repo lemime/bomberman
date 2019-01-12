@@ -12,7 +12,7 @@ class Crate : public BoardTileFragment {
 public:
     Crate(int x, int y);
 
-    void destroy(float currentTime) override {};
+    bool destroy(float currentTime) override { return true; };
 };
 
 #endif //BOMBERMAN_CRATE_H

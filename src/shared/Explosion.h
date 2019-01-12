@@ -8,12 +8,12 @@
 #include "BoardTileFragment.h"
 #include "Triggerable.h"
 
-class Explosion : public BoardTileFragment, Triggerable {
+class Explosion : public BoardTileFragment, public Triggerable {
 
 public:
     Explosion(int x, int y, float triggerTime);
 
-    void destroy(float currentTime) override {};
+    bool destroy(float currentTime) override { return true; };
 };
 
 #endif //BOMBERMAN_EXPLOSION_H

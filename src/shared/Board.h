@@ -12,6 +12,7 @@
 
 #include "BoardTile.h"
 #include "BoardTileFragment.h"
+#include "Bomb.h"
 #include "Crate.h"
 #include "CursesHelper.h"
 #include "Explosion.h"
@@ -35,6 +36,8 @@ private:
     std::vector<Slot *> slots;
 
     CursesHelper *cursesHelper;
+
+    std::vector<Bomb *> bombs;
 
     std::vector<Explosion *> explosions;
 
@@ -61,9 +64,13 @@ public:
 
     void spawnPlayer(Player *player);
 
+    void spawnBomb(Bomb *bomb);
+
+    void spawnExplosion(Explosion *explosion);
+
     int getSlotsSize();
 
-    void explode(Bomb *bomb);
+    void createExplosions();
 
     void spreadExplosion(int x, int y, int x_offset, int y_offset, int explosionSize);
 

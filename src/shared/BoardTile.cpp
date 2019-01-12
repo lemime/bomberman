@@ -4,7 +4,8 @@
 
 #include "BoardTile.h"
 
-BoardTile::BoardTile(int x, int y) {
+BoardTile::BoardTile(int x, int y) : x(x), y(y) {
+
     push_back(new Floor(x, y));
 }
 
@@ -46,13 +47,7 @@ bool BoardTile::isPassable() {
 
 void BoardTile::destroy(float currentTime) {
 
-    for (auto tile : *this) {
-        if (tile->isDestructible) {
-            tile->destroy(currentTime);
-        }
-    }
-
-    erase(std::remove_if(begin(), end(), [](auto tile) {
-        return tile->isDestructible;
+    erase(std::remove_if(begin(), end(), [currentTime](auto tile) {
+        return tile->isDestructible && tile->destroy(currentTime);
     }), end());
 }

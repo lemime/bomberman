@@ -12,7 +12,7 @@ class Slot : public BoardTileFragment {
 public:
     Slot(int x, int y);
 
-    void destroy(float currentTime) override {};
+    bool destroy(float currentTime) override { return true; };
 };
 
 #endif //BOMBERMAN_SLOT_H

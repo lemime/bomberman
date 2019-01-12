@@ -7,22 +7,20 @@
 Player::Player(int id, std::string name, int x, int y)
         : id(id), name(std::move(name)), BoardTileFragment(true, false, " " + std::to_string(id) + " ", 2, x, y) {
 
-    explosionSize = 2;
-    maxBombs = 2;
+    explosionSize = 10;
+    maxBombs = 5;
 }
 
-Bomb *Player::spawnBomb(float currentTime) {
+bool Player::canPlaceBomb() {
 
-    if (maxBombs > placedBombs) {
-        auto *bomb = new Bomb(x, y, explosionSize, currentTime);
-        placedBombs++;
-        return bomb;
-    } else {
-        return nullptr;
-    }
+    return maxBombs > placedBombs;
 }
 
-void Player::destroy(float currentTime) {
-
+bool Player::destroy(float currentTime) {
     symbol = " x ";
+    return false;
+}
+
+bool Player::isAlive() {
+    return lives > 0;
 }

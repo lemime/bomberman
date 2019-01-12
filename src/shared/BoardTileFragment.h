@@ -21,7 +21,7 @@ public:
 
     std::string symbol;
 
-    virtual void destroy(float currentTime) = 0;
+    virtual bool destroy(float currentTime) = 0;
 };
 
 #endif //BOMBERMAN_BOARDTILE_H
