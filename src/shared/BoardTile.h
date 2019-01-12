@@ -20,6 +20,8 @@ private:
 public:
     BoardTile(int x, int y);
 
+    ~BoardTile();
+
     std::string symbol();
 
     bool isDestructible();

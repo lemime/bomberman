@@ -15,6 +15,7 @@ int selectGameType();
 int startGame(int mapid);
 
 int selectMap(int chosen) {
+
     std::vector<std::string> mapOptions = {"Previous", "Next", "Select", "Back"};
     cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
     cursesHelper->setContext(1);
@@ -48,6 +49,7 @@ int selectMap(int chosen) {
 }
 
 int selectRoom(int chosen) {
+
     std::vector<std::string> roomOptions = {"Previous", "Next", "Join", "Back"};
     cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
     cursesHelper->setContext(1);
@@ -87,6 +89,7 @@ int selectRoom(int chosen) {
 }
 
 int selectGameType() {
+
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
     std::vector<std::string> gameTypeOptions = {"Host a game", "Join a game", "Exit game"};
@@ -107,24 +110,27 @@ int selectGameType() {
 }
 
 int startGame(int mapid) {
+
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
 
-    auto room = new Room(mapid, cursesHelper);
-    if(room->join(new Player(1, "Gracz 1", 0, 0))) {
+    Room *room = new Room(mapid, cursesHelper);
+    if (room->join(new Player(1, "Gracz 1", 0, 0))) {
         cursesHelper->print("Gracz 1 dołączył do gry");
     };
-    if(room->join(new Player(2, "Gracz 2", 0, 0))) {
+    if (room->join(new Player(2, "Gracz 2", 0, 0))) {
         cursesHelper->print("Gracz 2 dołączył do gry");
     };
-    if(room->join(new Player(3, "Gracz 2", 0, 0))) {
+    if (room->join(new Player(3, "Gracz 2", 0, 0))) {
         cursesHelper->print("Gracz 2 dołączył do gry");
     };
     room->startGame();
+    delete room;
     return 0;
 }
 
 int main() {
+
     cursesHelper = new CursesHelper();
 
     int selectedGameType = selectGameType();

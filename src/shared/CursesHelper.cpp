@@ -21,6 +21,7 @@ CursesHelper::CursesHelper() {
 
 CursesHelper::~CursesHelper() {
 
+    delete windowHelper;
     endwin();
 }
 

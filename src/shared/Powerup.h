@@ -12,6 +12,8 @@ class Powerup : public BoardTileFragment {
 public:
     Powerup(int type, int x, int y);
 
+    ~Powerup() override = default;
+
     bool destroy(float currentTime) override { return true; };
 };
 

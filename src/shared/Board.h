@@ -29,7 +29,13 @@ const std::vector<std::string> maps = {
 class Board {
 
 private:
-    int xSize, ySize, minPlayers, maxPlayers;
+    int xSize = 0;
+
+    int ySize = 0;
+
+    int minPlayers = 0;
+
+    int maxPlayers = 0;
 
     BoardTile ***tiles;
 
@@ -42,6 +48,8 @@ private:
     std::vector<Explosion *> explosions;
 
     std::vector<Triggerable *> triggerables;
+
+    std::vector<Player *> players;
 
     std::string getDefaultSize();
 

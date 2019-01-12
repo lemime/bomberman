@@ -22,6 +22,8 @@ public:
     std::string symbol;
 
     virtual bool destroy(float currentTime) = 0;
+
+    virtual ~BoardTileFragment() = default;
 };
 
 #endif //BOMBERMAN_BOARDTILE_H

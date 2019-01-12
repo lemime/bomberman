@@ -11,8 +11,11 @@ Room::Room(int mapid, CursesHelper *cursesHelper) : cursesHelper(cursesHelper) {
 }
 
 Room::~Room() {
-
     delete board;
+    delete game;
+    for (auto player: players) {
+        delete player;
+    }
 }
 
 bool Room::join(Player *player) {

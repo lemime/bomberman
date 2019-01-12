@@ -13,6 +13,8 @@ class Explosion : public BoardTileFragment, public Triggerable {
 public:
     Explosion(int x, int y, float triggerTime);
 
+    ~Explosion() override = default;
+
     bool destroy(float currentTime) override { return true; };
 };
 

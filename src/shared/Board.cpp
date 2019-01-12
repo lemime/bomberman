@@ -35,8 +35,10 @@ void Board::draw() {
 Board::Board(std::string path, CursesHelper *cursesHelper) : cursesHelper(cursesHelper) {
 
     std::ifstream file(path);
-//    TODO check if file is opened
-    file >> xSize >> ySize >> minPlayers >> maxPlayers;
+
+    if (file.is_open()) {
+        file >> xSize >> ySize >> minPlayers >> maxPlayers;
+    }
 
     int type;
     tiles = new BoardTile **[ySize];
@@ -69,6 +71,9 @@ Board::Board(std::string path, CursesHelper *cursesHelper) : cursesHelper(curses
 }
 
 Board::~Board() {
+    for (auto player: players) {
+        removeFragment(player);
+    }
 
     for (int i = 0; i < ySize; i++) {
         for (int j = 0; j < xSize; j++) {
@@ -124,6 +129,7 @@ void Board::spawnPlayer(Player *player) {
             player->x = slot->x;
             player->y = slot->y;
             addFragment(player);
+            players.push_back(player);
             break;
         }
     }

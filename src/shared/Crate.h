@@ -12,6 +12,8 @@ class Crate : public BoardTileFragment {
 public:
     Crate(int x, int y);
 
+    ~Crate() override {};
+
     bool destroy(float currentTime) override { return true; };
 };
 

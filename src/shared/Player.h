@@ -29,6 +29,8 @@ public:
 
     Player(int id, std::string name, int x, int y);
 
+    ~Player() override = default;
+
     bool canPlaceBomb();
 
     bool isAlive();

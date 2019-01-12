@@ -17,6 +17,8 @@ private:
 public:
     Bomb(Player *player, float triggerTime);
 
+    ~Bomb() override = default;
+
     int explosionSize;
 
     bool destroy(float currentTime) override;

@@ -12,6 +12,8 @@ class Slot : public BoardTileFragment {
 public:
     Slot(int x, int y);
 
+    ~Slot() override = default;
+
     bool destroy(float currentTime) override { return true; };
 };
 

@@ -12,6 +12,8 @@ class Floor : public BoardTileFragment {
 public:
     Floor(int x, int y);
 
+    ~Floor() override = default;
+
     bool destroy(float currentTime) override { return true; };
 };
 

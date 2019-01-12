@@ -51,3 +51,10 @@ void BoardTile::destroy(float currentTime) {
         return tile->isDestructible && tile->destroy(currentTime);
     }), end());
 }
+
+BoardTile::~BoardTile() {
+    erase(std::remove_if(begin(), end(), [this](auto tile) {
+        delete tile;
+        return true;
+    }), end());
+}

@@ -10,8 +10,9 @@
 class Wall : public BoardTileFragment {
 
 public:
-
     Wall(int x, int y);
+
+    ~Wall() override = default;
 
     bool destroy(float currentTime) override { return true; };
 };
