@@ -7,6 +7,7 @@
 Room::Room(int mapid, CursesHelper *cursesHelper) : cursesHelper(cursesHelper) {
 
     board = new Board(maps.at(static_cast<unsigned long>(mapid)), cursesHelper);
+    game = new Game(cursesHelper, board);
     slots = board->getSlotsSize();
 }
 
@@ -38,8 +39,6 @@ void Room::draw() {
 }
 
 void Room::startGame() {
-
-    game = new Game(cursesHelper, board);
     for (Player *player: players) {
         game->spawnPlayer(player);
     }

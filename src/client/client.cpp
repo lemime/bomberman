@@ -37,7 +37,7 @@ int selectMap(int chosen) {
             return selectMap(chosen);
         }
         case 2 : {
-            return chosen;
+            return startGame(chosen);
         }
         case 3 : {
             return selectGameType();
@@ -77,7 +77,7 @@ int selectRoom(int chosen) {
             return selectRoom(chosen);
         }
         case 2 : {
-            return chosen;
+            return startGame(chosen);
         }
         case 3 : {
             return selectGameType();
@@ -115,29 +115,19 @@ int startGame(int mapid) {
     cursesHelper->setContext(0);
 
     Room *room = new Room(mapid, cursesHelper);
-    if (room->join(new Player(1, "Gracz 1", 0, 0))) {
-        cursesHelper->print("Gracz 1 dołączył do gry");
-    };
-    if (room->join(new Player(2, "Gracz 2", 0, 0))) {
-        cursesHelper->print("Gracz 2 dołączył do gry");
-    };
-    if (room->join(new Player(3, "Gracz 2", 0, 0))) {
-        cursesHelper->print("Gracz 2 dołączył do gry");
-    };
+    room->join(new Player(1, "Gracz 1", 0, 0));
+    room->join(new Player(2, "Gracz 2", 0, 0));
+    room->join(new Player(3, "Gracz 3", 0, 0));
     room->startGame();
     delete room;
-    return 0;
+    return selectGameType();
 }
 
 int main() {
 
     cursesHelper = new CursesHelper();
 
-    int selectedGameType = selectGameType();
-
-    if (selectedGameType != -1) {
-        startGame(selectedGameType);
-    }
+    selectGameType();
 
     delete cursesHelper;
 
