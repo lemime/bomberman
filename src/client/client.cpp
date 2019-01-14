@@ -6,14 +6,6 @@
 
 CursesHelper *cursesHelper;
 
-int selectMap(int chosen = 0);
-
-int selectRoom(int chosen = 0);
-
-int selectGameType();
-
-int startGame(int mapid);
-
 int selectMap(int chosen) {
 
     std::vector<std::string> mapOptions = {"Previous", "Next", "Select", "Back"};
@@ -119,17 +111,78 @@ int startGame(int mapid) {
     room->join(new Player(2, "Gracz 2", 0, 0));
     room->join(new Player(3, "Gracz 3", 0, 0));
     room->startGame();
+
     delete room;
     return selectGameType();
 }
 
 int main() {
 
-    cursesHelper = new CursesHelper();
+//    cursesHelper = new CursesHelper();
+//
+//    selectGameType();
+//
+//    delete cursesHelper;
 
-    selectGameType();
+    std::ifstream file("../shared/config.txt");
 
-    delete cursesHelper;
+    std::string address;
+    std::string port;
 
-    return 0;
+    if (file.is_open()) {
+        file >> address >> port;
+    }
+
+    addrinfo *resolved, hints = {.ai_flags=0, .ai_family=AF_INET, .ai_socktype=SOCK_STREAM};
+    checkpoint(!getaddrinfo(address.c_str(), port.c_str(), &hints, &resolved) || resolved,
+               "Getting address info");
+
+    int sock = socket(resolved->ai_family, resolved->ai_socktype, 0);
+    checkpoint(sock != -1,
+               "Creating socket");
+
+    checkpoint(!connect(sock, resolved->ai_addr, resolved->ai_addrlen),
+               "Connecting to a socket");
+
+    freeaddrinfo(resolved);
+
+//    std::thread socketReaderThread([sock] {
+//        while (1) {
+//            // read from socket, write to stdout
+//            ssize_t bufsize = 255, received;
+//            char buffer[bufsize];
+//            received = readData(sock, buffer, bufsize);
+//            if (received <= 0) {
+//                shutdown(sock, SHUT_RDWR);
+//                close(sock);
+//                exit(0);
+//            }
+//            writeData(1, buffer, received);
+//        }
+//    });
+//
+//
+//    while (1) {
+//        // read from stdin, write to socket
+//        ssize_t bufsize = 255, received;
+//        char buffer[bufsize];
+//        received = readData(0, buffer, bufsize);
+//        if (received <= 0) {
+//            shutdown(sock, SHUT_RDWR);
+//            close(sock);
+//            exit(0);
+//        }
+//        writeData(sock, buffer, received);
+//    }
+
+    shutdown(sock, SHUT_RDWR);
+    close(sock);
+
+    checkpoint(true, "Shutting down");
+    exit(0);
+}
+
+void checkpoint(bool condition, const std::string anchor) {
+
+    printf("%s", (anchor + (condition ? " successful\n" : " failed\n")).c_str());
 }

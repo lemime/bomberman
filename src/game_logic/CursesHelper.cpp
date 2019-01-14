@@ -5,7 +5,6 @@
 #include "CursesHelper.h"
 
 CursesHelper::CursesHelper() {
-
     initscr();
     keypad(stdscr, TRUE);
     noecho();
