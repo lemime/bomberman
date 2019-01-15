@@ -53,5 +53,10 @@ void WindowHelper::resizeWindow(WINDOW *window, int nlines, int ncols, int y_beg
 void WindowHelper::hideWindow(WINDOW *window) {
 
     resizeWindow(window, 1, 1, 100, 100);
+}
+
+int WindowHelper::getNlines() const {
+
+    return nlines;
 };
 

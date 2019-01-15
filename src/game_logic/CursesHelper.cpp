@@ -5,6 +5,7 @@
 #include "CursesHelper.h"
 
 CursesHelper::CursesHelper() {
+
     initscr();
     keypad(stdscr, TRUE);
     noecho();
@@ -82,6 +83,11 @@ void CursesHelper::printOptions(std::vector<std::string> options, int cursorPos)
 
 void CursesHelper::print(std::string text) {
 
+    int x = 0, y = 0;
+    getyx(currentWindow, y, x);
+    if (y >= windowHelper->getNlines() - 5) {
+        clear();
+    }
     wprintw(currentWindow, text.c_str());
     wrefresh(currentWindow);
 }

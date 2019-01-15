@@ -20,6 +20,12 @@ private:
     int slots;
 
 public:
+    int mapid;
+
+    std::string id;
+
+    int playersCount = 0;
+
     Board *board;
 
     Room(int mapid, CursesHelper *cursesHelper);
@@ -31,6 +37,8 @@ public:
     void draw();
 
     void startGame();
+
+    std::string toString();
 };
 
 #endif //BOMBERMAN_ROOM_H

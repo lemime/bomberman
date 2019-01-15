@@ -4,7 +4,26 @@
 
 #include "client.h"
 
-CursesHelper *cursesHelper;
+std::string readData() {
+
+    char buffer[255] = "";
+    auto ret = read(socketDescriptor, buffer, 255);
+    checkpoint(ret > 0, "Reading data from descriptor " + std::to_string(ret));
+    if (ret > 0) {
+        return std::string(buffer);
+    } else {
+        return "";
+    }
+}
+
+void writeData(std::string message) {
+
+    char *buffer = new char[message.length() + 1];
+    strcpy(buffer, message.c_str());
+    auto ret = write(socketDescriptor, buffer, strlen(buffer));
+    checkpoint(ret != -1, "Writing data to descriptor");
+    delete[] buffer;
+}
 
 int selectMap(int chosen) {
 
@@ -29,7 +48,7 @@ int selectMap(int chosen) {
             return selectMap(chosen);
         }
         case 2 : {
-            return startGame(chosen);
+            return createRoom(chosen);
         }
         case 3 : {
             return selectGameType();
@@ -46,37 +65,67 @@ int selectRoom(int chosen) {
     cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
     cursesHelper->setContext(1);
 
-//    Get data from server
-    int rooms = 3;
-    auto *room = new Room(chosen, cursesHelper);
-    room->join(new Player(1, "Gracz 1", 0, 0));
-    room->join(new Player(2, "Gracz 2", 0, 0));
-    room->join(new Player(3, "Gracz 3", 0, 0));
-    room->draw();
-    delete room;
+    writeData("[GET_ROOMS_COUNT];0");
 
-    cursesHelper->setContext(0);
-    switch (cursesHelper->handleSelection(roomOptions)) {
-        case -1 : {
+    std::string message = readData();
+    std::string delimiter = ";";
+    std::string endpoint = message.substr(0, message.find(delimiter));
+    message.erase(0, message.find(delimiter) + delimiter.length());
+
+    int rooms = 0;
+    if (endpoint == "[GET_ROOMS_COUNT]") {
+         rooms = std::stoi(message);
+    } else {
+        return selectGameType();
+    };
+
+    if (rooms > 0) {
+        writeData("[GET_ROOM];" + std::to_string(chosen));
+        message = readData();
+        endpoint = message.substr(0, message.find(delimiter));
+        message.erase(0, message.find(delimiter) + delimiter.length());
+
+        int mapid = 0;
+
+        if (endpoint == "[GET_ROOM]") {
+            mapid = std::stoi(message);
+        } else {
             return selectGameType();
         }
-        case 0 : {
-            chosen = (chosen - 1 + rooms) % rooms;
-            return selectRoom(chosen);
+
+        auto *room = new Room(mapid, cursesHelper);
+        room->join(new Player(1, "Gracz 1", 0, 0));
+        room->join(new Player(2, "Gracz 2", 0, 0));
+        room->join(new Player(3, "Gracz 3", 0, 0));
+        room->draw();
+        delete room;
+        auto chosenRoomId = "123";
+
+        cursesHelper->setContext(0);
+        switch (cursesHelper->handleSelection(roomOptions)) {
+            case -1 : {
+                return selectGameType();
+            }
+            case 0 : {
+                chosen = (chosen - 1 + rooms) % rooms;
+                return selectRoom(chosen);
+            }
+            case 1 : {
+                chosen = (chosen + 1 + rooms) % rooms;
+                return selectRoom(chosen);
+            }
+            case 2 : {
+                return joinRoom(chosenRoomId);
+            }
+            case 3 : {
+                return selectGameType();
+            }
+            default: {
+                return -1;
+            }
         }
-        case 1 : {
-            chosen = (chosen + 1 + rooms) % rooms;
-            return selectRoom(chosen);
-        }
-        case 2 : {
-            return startGame(chosen);
-        }
-        case 3 : {
-            return selectGameType();
-        }
-        default: {
-            return -1;
-        }
+    } else {
+        return selectGameType();
     }
 }
 
@@ -101,28 +150,55 @@ int selectGameType() {
     };
 }
 
-int startGame(int mapid) {
+int startGame(Room *room) {
 
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
 
-    Room *room = new Room(mapid, cursesHelper);
-    room->join(new Player(1, "Gracz 1", 0, 0));
-    room->join(new Player(2, "Gracz 2", 0, 0));
-    room->join(new Player(3, "Gracz 3", 0, 0));
     room->startGame();
 
     delete room;
     return selectGameType();
 }
 
+int createRoom(int mapId) {
+
+    std::string message = "[CREATE_ROOM];" + std::to_string(mapId);
+    writeData(message);
+
+    message = readData();
+    std::string delimiter = ";";
+    std::string endpoint = message.substr(0, message.find(delimiter));
+    message.erase(0, message.find(delimiter) + delimiter.length());
+
+    if (endpoint == "[CREATE_ROOM]") {
+        return joinRoom(message);
+    } else {
+        return selectGameType();
+    };
+}
+
+int joinRoom(std::string roomId) {
+
+    std::string message = "[JOIN_ROOM];1";
+    writeData(message);
+
+    message = readData();
+    std::string delimiter = ";";
+    std::string endpoint = message.substr(0, message.find(delimiter));
+    message.erase(0, message.find(delimiter) + delimiter.length());
+
+    if (endpoint == "[JOIN_ROOM]") {
+        Room *room = new Room(std::stoi(message), cursesHelper);
+        return startGame(room);
+    } else {
+        return selectGameType();
+    };
+}
+
 int main() {
 
-//    cursesHelper = new CursesHelper();
-//
-//    selectGameType();
-//
-//    delete cursesHelper;
+    cursesHelper = new CursesHelper();
 
     std::ifstream file("../shared/config.txt");
 
@@ -134,55 +210,35 @@ int main() {
     }
 
     addrinfo *resolved, hints = {.ai_flags=0, .ai_family=AF_INET, .ai_socktype=SOCK_STREAM};
-    checkpoint(!getaddrinfo(address.c_str(), port.c_str(), &hints, &resolved) || resolved,
+    checkpoint(!getaddrinfo(address.c_str(), port.c_str(), &hints, &resolved) && resolved,
                "Getting address info");
 
-    int sock = socket(resolved->ai_family, resolved->ai_socktype, 0);
-    checkpoint(sock != -1,
+    socketDescriptor = socket(resolved->ai_family, resolved->ai_socktype, 0);
+    checkpoint(socketDescriptor != -1,
                "Creating socket");
 
-    checkpoint(!connect(sock, resolved->ai_addr, resolved->ai_addrlen),
+    checkpoint(!connect(socketDescriptor, resolved->ai_addr, resolved->ai_addrlen),
                "Connecting to a socket");
 
     freeaddrinfo(resolved);
 
-//    std::thread socketReaderThread([sock] {
-//        while (1) {
-//            // read from socket, write to stdout
-//            ssize_t bufsize = 255, received;
-//            char buffer[bufsize];
-//            received = readData(sock, buffer, bufsize);
-//            if (received <= 0) {
-//                shutdown(sock, SHUT_RDWR);
-//                close(sock);
-//                exit(0);
-//            }
-//            writeData(1, buffer, received);
-//        }
-//    });
-//
-//
-//    while (1) {
-//        // read from stdin, write to socket
-//        ssize_t bufsize = 255, received;
-//        char buffer[bufsize];
-//        received = readData(0, buffer, bufsize);
-//        if (received <= 0) {
-//            shutdown(sock, SHUT_RDWR);
-//            close(sock);
-//            exit(0);
-//        }
-//        writeData(sock, buffer, received);
-//    }
+    signal(SIGINT, ctrl_c);
 
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
+    selectGameType();
 
-    checkpoint(true, "Shutting down");
-    exit(0);
+    ctrl_c(SIGINT);
 }
 
 void checkpoint(bool condition, const std::string anchor) {
 
-    printf("%s", (anchor + (condition ? " successful\n" : " failed\n")).c_str());
+    cursesHelper->print(anchor + (condition ? " successful\n" : " failed\n"));
+}
+
+void ctrl_c(int) {
+
+    checkpoint(true, "Closing client");
+    delete cursesHelper;
+    shutdown(socketDescriptor, SHUT_RDWR);
+    close(socketDescriptor);
+    exit(0);
 }

@@ -30,6 +30,8 @@ public:
     void resizeWindow(WINDOW *window, int nlines, int ncols, int y_begin, int x_begin);
 
     void hideWindow(WINDOW *window);
+
+    int getNlines() const;
 };
 
 #endif //BOMBERMAN_WINDOWHELPER_H

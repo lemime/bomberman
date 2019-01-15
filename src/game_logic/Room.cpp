@@ -4,7 +4,7 @@
 
 #include "Room.h"
 
-Room::Room(int mapid, CursesHelper *cursesHelper) : cursesHelper(cursesHelper) {
+Room::Room(int mapid, CursesHelper *cursesHelper) : mapid(mapid), cursesHelper(cursesHelper) {
 
     board = new Board(maps.at(static_cast<unsigned long>(mapid)), cursesHelper);
     game = new Game(cursesHelper, board);
@@ -43,4 +43,13 @@ void Room::startGame() {
         game->spawnPlayer(player);
     }
     game->start();
+}
+
+std::string Room::toString() {
+    std::string result;
+    result = result + std::to_string(mapid) + ";";
+    for(auto player: players) {
+        result = result + player->name + ";";
+    }
+    return result;
 }
