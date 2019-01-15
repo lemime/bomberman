@@ -24,11 +24,11 @@ public:
 
     std::string id;
 
-    int playersCount = 0;
-
     Board *board;
 
     Room(int mapid, CursesHelper *cursesHelper);
+
+    Room(std::string unparsed, CursesHelper *cursesHelper);
 
     ~Room();
 

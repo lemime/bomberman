@@ -13,10 +13,9 @@
 
 class Player : public BoardTileFragment {
 
-private:
+public:
     int id;
 
-public:
     std::string name;
 
     int maxBombs;

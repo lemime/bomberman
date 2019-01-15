@@ -11,6 +11,29 @@ Room::Room(int mapid, CursesHelper *cursesHelper) : mapid(mapid), cursesHelper(c
     slots = board->getSlotsSize();
 }
 
+Room::Room(std::string unparsed, CursesHelper *cursesHelper) : cursesHelper(cursesHelper) {
+    std::string delimiter = ";";
+    std::string parsedRoomId = unparsed.substr(0, unparsed.find(delimiter));
+    unparsed.erase(0, unparsed.find(delimiter) + delimiter.length());
+    std::string parsedMapId = unparsed.substr(0, unparsed.find(delimiter));
+    unparsed.erase(0, unparsed.find(delimiter) + delimiter.length());
+    std::string parsedPlayerNumber = unparsed.substr(0, unparsed.find(delimiter));
+    unparsed.erase(0, unparsed.find(delimiter) + delimiter.length());
+
+    id = parsedRoomId;
+    mapid = std::stoi(parsedMapId);
+
+    for(int i = 0; i < std::stoi(parsedPlayerNumber); i++) {
+        std::string parsedPlayerId = unparsed.substr(0, unparsed.find(delimiter));
+        unparsed.erase(0, unparsed.find(delimiter) + delimiter.length());
+        join(new Player(std::stoi(parsedPlayerId), "Gracz " + parsedPlayerId, 0, 0));
+    }
+
+    board = new Board(maps.at(static_cast<unsigned long>(mapid)), cursesHelper);
+    game = new Game(cursesHelper, board);
+    slots = board->getSlotsSize();
+}
+
 Room::~Room() {
     delete board;
     delete game;
@@ -25,6 +48,7 @@ bool Room::join(Player *player) {
         players.push_back(player);
         return true;
     } else {
+        delete player;
         return false;
     }
 }
@@ -47,9 +71,14 @@ void Room::startGame() {
 
 std::string Room::toString() {
     std::string result;
-    result = result + std::to_string(mapid) + ";";
+    result += id;
+    result += ";";
+    result += std::to_string(mapid);
+    result += ";";
+    result += std::to_string(players.size());
     for(auto player: players) {
-        result = result + player->name + ";";
+        result += ";";
+        result += std::to_string(player->id);
     }
     return result;
 }

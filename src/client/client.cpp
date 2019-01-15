@@ -74,55 +74,48 @@ int selectRoom(int chosen) {
 
     int rooms = 0;
     if (endpoint == "[GET_ROOMS_COUNT]") {
-         rooms = std::stoi(message);
+        rooms = std::stoi(message);
     } else {
         return selectGameType();
     };
 
     if (rooms > 0) {
         writeData("[GET_ROOM];" + std::to_string(chosen));
+
         message = readData();
         endpoint = message.substr(0, message.find(delimiter));
         message.erase(0, message.find(delimiter) + delimiter.length());
 
-        int mapid = 0;
-
         if (endpoint == "[GET_ROOM]") {
-            mapid = std::stoi(message);
+            auto room = new Room(message, cursesHelper);
+            room->draw();
+            delete room;
+
+            cursesHelper->setContext(0);
+            switch (cursesHelper->handleSelection(roomOptions)) {
+                case -1 : {
+                    return selectGameType();
+                }
+                case 0 : {
+                    chosen = (chosen - 1 + rooms) % rooms;
+                    return selectRoom(chosen);
+                }
+                case 1 : {
+                    chosen = (chosen + 1 + rooms) % rooms;
+                    return selectRoom(chosen);
+                }
+                case 2 : {
+                    return joinRoom(room->id);
+                }
+                case 3 : {
+                    return selectGameType();
+                }
+                default: {
+                    return -1;
+                }
+            }
         } else {
             return selectGameType();
-        }
-
-        auto *room = new Room(mapid, cursesHelper);
-        room->join(new Player(1, "Gracz 1", 0, 0));
-        room->join(new Player(2, "Gracz 2", 0, 0));
-        room->join(new Player(3, "Gracz 3", 0, 0));
-        room->draw();
-        delete room;
-        auto chosenRoomId = "123";
-
-        cursesHelper->setContext(0);
-        switch (cursesHelper->handleSelection(roomOptions)) {
-            case -1 : {
-                return selectGameType();
-            }
-            case 0 : {
-                chosen = (chosen - 1 + rooms) % rooms;
-                return selectRoom(chosen);
-            }
-            case 1 : {
-                chosen = (chosen + 1 + rooms) % rooms;
-                return selectRoom(chosen);
-            }
-            case 2 : {
-                return joinRoom(chosenRoomId);
-            }
-            case 3 : {
-                return selectGameType();
-            }
-            default: {
-                return -1;
-            }
         }
     } else {
         return selectGameType();
@@ -180,7 +173,7 @@ int createRoom(int mapId) {
 
 int joinRoom(std::string roomId) {
 
-    std::string message = "[JOIN_ROOM];1";
+    std::string message = "[JOIN_ROOM];" + roomId;
     writeData(message);
 
     message = readData();
@@ -189,7 +182,7 @@ int joinRoom(std::string roomId) {
     message.erase(0, message.find(delimiter) + delimiter.length());
 
     if (endpoint == "[JOIN_ROOM]") {
-        Room *room = new Room(std::stoi(message), cursesHelper);
+        auto room = new Room(message, cursesHelper);
         return startGame(room);
     } else {
         return selectGameType();

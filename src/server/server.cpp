@@ -159,6 +159,7 @@ Room *getRoomById(std::string id) {
     auto room = new Room(0, cursesHelper);
     room->id = std::to_string(roomId++);
     rooms.push_back(room);
+    checkpoint(true, "Not found, creating new room " + room->toString());
     return room;
 }
 
@@ -172,15 +173,16 @@ void handleMessage(int fd, std::string message) {
         message.erase(0, message.find(delimiter) + delimiter.length());
 
         if (endpoint == "[CREATE_ROOM]") {
-            checkpoint(true, "Creating new room");
+            roomId++;
             int mapid = std::stoi(message);
             auto room = new Room(mapid, cursesHelper);
-            room->id = std::to_string(roomId++);
+            room->id = std::to_string(roomId);
             rooms.push_back(room);
+            checkpoint(true, "Creating new room with mapid " + room->toString());
             writeData(fd, "[CREATE_ROOM];" + room->id);
         } else if (endpoint == "[JOIN_ROOM]") {
             auto room = getRoomById(message);
-            if (room->join(new Player(room->playersCount++, "Gracz " + std::to_string(room->playersCount), 0, 0))) {
+            if (room->join(new Player(fd, "Gracz " + std::to_string(fd), 0, 0))) {
                 writeData(fd, "[JOIN_ROOM];" + room->toString());
             } else {
                 writeData(fd, "[ROOM_FULL];0");
