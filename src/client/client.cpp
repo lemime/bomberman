@@ -193,6 +193,9 @@ int main() {
 
     cursesHelper = new CursesHelper();
 
+    cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
+    cursesHelper->setContext(0);
+
     std::ifstream file("../shared/config.txt");
 
     std::string address;
@@ -217,8 +220,19 @@ int main() {
 
     signal(SIGINT, ctrl_c);
 
+    cursesHelper->print("Press any key to start \n");
+    getch();
+    timeout(1000);
+    getch();
+
     selectGameType();
 
+    cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
+    cursesHelper->setContext(0);
+    cursesHelper->printAtCenter("Press any key to exit \n");
+    getch();
+    timeout(1000);
+    getch();
     ctrl_c(SIGINT);
 }
 

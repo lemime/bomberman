@@ -5,7 +5,6 @@
 #ifndef BOMBERMAN_CURSESHELPER_H
 #define BOMBERMAN_CURSESHELPER_H
 
-#include <iostream>
 #include <ncurses.h>
 #include <string>
 #include <vector>
@@ -39,6 +38,8 @@ public:
     void printOptions(std::vector<std::string> options, int cursorPos);
 
     void setContext(int window);
+
+    void checkpoint(bool condition, const std::string &anchor);
 };
 
 #endif //BOMBERMAN_CURSESHELPER_H

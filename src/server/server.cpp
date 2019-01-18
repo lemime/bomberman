@@ -4,81 +4,86 @@
 
 #include "server.h"
 
-std::string readData(int socketDescriptor) {
-
-    char buffer[255] = "";
-    auto ret = read(socketDescriptor, buffer, 255);
-    checkpoint(ret > 0, "Reading data from descriptor " + std::string(buffer));
-    if (ret > 0) {
-        return std::string(buffer);
-    } else {
-        return "";
-    }
-}
-
-void writeData(int socketDescriptor, std::string message) {
-
-    char *buffer = new char[message.length() + 1];
-    strcpy(buffer, message.c_str());
-    auto ret = write(socketDescriptor, buffer, strlen(buffer));
-    checkpoint(ret != -1, "Writing data to descriptor " + std::string(buffer));
-    delete[] buffer;
-}
-
 int main(int argc, char **argv) {
+
+    running = true;
 
     cursesHelper = new CursesHelper();
 
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
 
-    auto port = 1234;
+    std::ifstream file("../shared/config.txt");
+
+    std::string address;
+    short portRangeStart = 1234;
+    short portRangeStop = 1234;
+
+    if (file.is_open()) {
+        file >> address >> portRangeStart >> portRangeStop;
+    }
+    cursesHelper->checkpoint(file.is_open(), "Reading configuration file");
+    cursesHelper->print("Address " + address +
+                        ", Port range: " + std::to_string(portRangeStart) + ":" + std::to_string(portRangeStop) + "\n");
 
     serverSocketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
-    checkpoint(serverSocketDescriptor != -1,
-               "Creating server socket");
+    cursesHelper->checkpoint(serverSocketDescriptor != -1,
+                             "Creating server socket");
 
-    signal(SIGINT, ctrl_c);
+    signal(SIGINT, cleanAndExit);
     signal(SIGPIPE, SIG_IGN);
 
     const int one = 1;
-    checkpoint(!setsockopt(serverSocketDescriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)),
-               "Setting reusable address");
+    cursesHelper->checkpoint(!setsockopt(serverSocketDescriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)),
+                             "Setting reusable address");
 
-    sockaddr_in serverAddress{.sin_family=AF_INET, .sin_port=htons((short) port), .sin_addr={INADDR_ANY}};
-    checkpoint(!bind(serverSocketDescriptor, (sockaddr *) &serverAddress, sizeof(serverAddress)),
-               "Binding server address");
+    sockaddr_in serverAddress{.sin_family=AF_INET, .sin_port=htons(portRangeStart), .sin_addr={INADDR_ANY}};
+    cursesHelper->checkpoint(!bind(serverSocketDescriptor, (sockaddr *) &serverAddress, sizeof(serverAddress)),
+                             "Binding server address");
 
-    checkpoint(!listen(serverSocketDescriptor, 4),
-               "Listening for connections");
+    cursesHelper->checkpoint(!listen(serverSocketDescriptor, 4),
+                             "Listening for connections");
 
-    descr = (pollfd *) malloc(sizeof(pollfd) * descrCapacity);
+    pollDescriptors = (pollfd *) malloc(sizeof(pollfd) * descriptorsCapacity);
 
-    descr[0].fd = serverSocketDescriptor;
-    descr[0].events = POLLIN;
+    pollDescriptors[0].fd = serverSocketDescriptor;
+    pollDescriptors[0].events = POLLIN;
 
     while (true) {
-        int ready = poll(descr, descrCount, -1);
+        int ready = poll(pollDescriptors, descriptorCounter, -1);
         if (ready == -1) {
-            checkpoint(false, "Creating poll");
-            ctrl_c(SIGINT);
+            cursesHelper->checkpoint(false, "Creating poll");
+            cleanAndExit(SIGINT);
         }
 
-        for (int i = 0; i < descrCount && ready > 0; ++i) {
-            if (descr[i].revents) {
-                if (descr[i].fd == serverSocketDescriptor)
-                    eventOnServFd(descr[i].revents);
-                else
-                    eventOnClientFd(i);
+        for (int i = 0; i < descriptorCounter && ready > 0; ++i) {
+            if (pollDescriptors[i].revents) {
+                if (pollDescriptors[i].fd == serverSocketDescriptor) {
+                    handleServerEvent(i);
+                } else {
+                    handleClientEvent(i);
+                }
                 ready--;
             }
         }
     };
 }
 
-void ctrl_c(int) {
+void cleanAndExit(int) {
 
-    checkpoint(true, "Closing server");
+    running = false;
+    cursesHelper->print("Waiting for other threads to finish ...\n");
+
+    for (std::thread &roomThread: roomThreads) {
+        roomThread.join();
+        cursesHelper->checkpoint(true, "Thread joined");
+    }
+
+    cursesHelper->print("Press any key to exit ...\n");
+
+    getch();
+    timeout(1000);
+    getch();
 
     rooms.erase(std::remove_if(rooms.begin(), rooms.end(), [](auto bomb) {
         delete bomb;
@@ -86,63 +91,69 @@ void ctrl_c(int) {
     }), rooms.end());
 
     delete cursesHelper;
-    for (int i = 1; i < descrCount; ++i) {
-        shutdown(descr[i].fd, SHUT_RDWR);
-        close(descr[i].fd);
+    for (int i = 1; i < descriptorCounter; i++) {
+        shutdown(pollDescriptors[i].fd, SHUT_RDWR);
+        close(pollDescriptors[i].fd);
     }
     close(serverSocketDescriptor);
     exit(0);
 }
 
-void checkpoint(bool condition, const std::string anchor) {
+void handleServerEvent(int descriptorIndex) {
 
-    cursesHelper->print(anchor + (condition ? " successful\n" : " failed\n"));
-}
+    cursesHelper->checkpoint(true, "Handling event on server descriptor");
 
-void eventOnServFd(int revents) {
+    auto revents = pollDescriptors[descriptorIndex].revents;
 
     if (revents & ~POLLIN) {
-        checkpoint(false, "Server socket receiving not POLLIN");
-        ctrl_c(SIGINT);
+        cursesHelper->checkpoint(false, "Server socket receiving not POLLIN");
+        cleanAndExit(SIGINT);
     }
 
     if (revents & POLLIN) {
-        sockaddr_in clientAddr{};
-        socklen_t clientAddrSize = sizeof(clientAddr);
-
-        auto clientFd = accept(serverSocketDescriptor, (sockaddr *) &clientAddr, &clientAddrSize);
-        checkpoint(clientFd != -1, "Accepting new client");
-
-        if (descrCount == descrCapacity) {
-            descrCapacity <<= 1;
-            descr = (pollfd *) realloc(descr, sizeof(pollfd) * descrCapacity);
-        }
-
-        descr[descrCount].fd = clientFd;
-        descr[descrCount].events = POLLIN | 0x2000;
-        descrCount++;
-
-        checkpoint(true, std::string("Setting up new connection with: ") +
-                         inet_ntoa(clientAddr.sin_addr) +
-                         ":" +
-                         std::to_string(ntohs(clientAddr.sin_port)));
+        handleNewClient();
     }
 }
 
-void eventOnClientFd(int indexInDescr) {
+void handleNewClient() {
 
-    auto clientFd = descr[indexInDescr].fd;
-    auto revents = descr[indexInDescr].revents;
+    sockaddr_in clientAddr{};
+    socklen_t clientAddrSize = sizeof(clientAddr);
+
+    auto clientFd = accept(serverSocketDescriptor, (sockaddr *) &clientAddr, &clientAddrSize);
+    cursesHelper->checkpoint(clientFd != -1, "Accepting new client");
+
+    if (descriptorCounter == descriptorsCapacity) {
+        descriptorsCapacity <<= 1;
+        pollDescriptors = (pollfd *) realloc(pollDescriptors, sizeof(pollfd) * descriptorsCapacity);
+    }
+
+    pollDescriptors[descriptorCounter].fd = clientFd;
+    pollDescriptors[descriptorCounter].events = POLLIN | 0x2000;
+    descriptorCounter++;
+
+    cursesHelper->checkpoint(true, std::string("Setting up new connection with: ") +
+                                   inet_ntoa(clientAddr.sin_addr) +
+                                   ":" +
+                                   std::to_string(ntohs(clientAddr.sin_port)));
+}
+
+void handleClientEvent(int decriptorIndex) {
+
+    cursesHelper->checkpoint(true, "Handling event on client descriptor");
+
+    auto clientFd = pollDescriptors[decriptorIndex].fd;
+    auto revents = pollDescriptors[decriptorIndex].revents;
 
     if (revents & POLLIN) {
-        handleMessage(clientFd, readData(clientFd));
+        handleClientMessage(clientFd, readData(cursesHelper, clientFd));
     }
 
     if (revents & ~POLLIN) {
-        cursesHelper->print("Removing " + std::to_string(clientFd) + "\n");
+        cursesHelper->print("Removing " + std::to_string(clientFd) + " " + std::to_string(revents) + "\n");
 
-        descr[indexInDescr] = descr[descrCount - 1];
-        descrCount--;
+        pollDescriptors[decriptorIndex] = pollDescriptors[descriptorCounter - 1];
+        descriptorCounter--;
 
         shutdown(clientFd, SHUT_RDWR);
         close(clientFd);
@@ -157,13 +168,13 @@ Room *getRoomById(std::string id) {
         }
     }
     auto room = new Room(0, cursesHelper);
-    room->id = std::to_string(roomId++);
+    room->id = std::to_string(roomCounter++);
     rooms.push_back(room);
-    checkpoint(true, "Not found, creating new room " + room->toString());
+    cursesHelper->checkpoint(true, "Room not found, creating new room " + room->toString());
     return room;
 }
 
-void handleMessage(int fd, std::string message) {
+void handleClientMessage(int descriptor, std::string message) {
 
     if (message.length() > 0) {
         cursesHelper->print("Handle message: " + message + "\n");
@@ -173,25 +184,35 @@ void handleMessage(int fd, std::string message) {
         message.erase(0, message.find(delimiter) + delimiter.length());
 
         if (endpoint == "[CREATE_ROOM]") {
-            roomId++;
+            roomCounter++;
             int mapid = std::stoi(message);
             auto room = new Room(mapid, cursesHelper);
-            room->id = std::to_string(roomId);
+            room->id = std::to_string(roomCounter);
             rooms.push_back(room);
-            checkpoint(true, "Creating new room with mapid " + room->toString());
-            writeData(fd, "[CREATE_ROOM];" + room->id);
+            cursesHelper->checkpoint(true, "Creating new room with mapid " + room->toString());
+            writeData(cursesHelper, descriptor, "[CREATE_ROOM];" + room->id);
+//            TODO create new thread that handles room connections
+            roomThreads.push_back(std::thread(handleRoom));
+            cursesHelper->checkpoint(true, "Creating new thread for room with id " + room->id);
         } else if (endpoint == "[JOIN_ROOM]") {
             auto room = getRoomById(message);
-            if (room->join(new Player(fd, "Gracz " + std::to_string(fd), 0, 0))) {
-                writeData(fd, "[JOIN_ROOM];" + room->toString());
+            if (room->join(new Player(descriptor, "Gracz " + std::to_string(descriptor), 0, 0))) {
+                writeData(cursesHelper, descriptor, "[JOIN_ROOM];" + room->toString());
             } else {
-                writeData(fd, "[ROOM_FULL];0");
+                writeData(cursesHelper, descriptor, "[ROOM_FULL];0");
             }
         } else if (endpoint == "[GET_ROOMS_COUNT]") {
-            writeData(fd, "[GET_ROOMS_COUNT];" + std::to_string(rooms.size()));
+            writeData(cursesHelper, descriptor, "[GET_ROOMS_COUNT];" + std::to_string(rooms.size()));
         } else if (endpoint == "[GET_ROOM]") {
             auto room = rooms.at(static_cast<unsigned long>(std::stoi(message)));
-            writeData(fd, "[GET_ROOM];" + room->toString());
+            writeData(cursesHelper, descriptor, "[GET_ROOM];" + room->toString());
         }
     }
 }
+
+void handleRoom() {
+
+    while (running) {
+
+    }
+};

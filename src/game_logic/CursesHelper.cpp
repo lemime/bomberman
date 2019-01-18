@@ -109,3 +109,8 @@ void CursesHelper::setContext(int window) {
 
     currentWindow = windowHelper->getWindowAt(window);
 }
+
+void CursesHelper::checkpoint(bool condition, const std::string &anchor) {
+
+    print(anchor + (condition ? " successful\n" : " failed\n"));
+}

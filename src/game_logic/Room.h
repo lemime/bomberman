@@ -5,6 +5,10 @@
 #ifndef BOMBERMAN_ROOM_H
 #define BOMBERMAN_ROOM_H
 
+#include <vector>
+#include <string>
+
+#include "CursesHelper.h"
 #include "Board.h"
 #include "Player.h"
 #include "Game.h"

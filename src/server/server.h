@@ -5,58 +5,51 @@
 #ifndef BOMBERMAN_SERVER_H
 #define BOMBERMAN_SERVER_H
 
-#include <cstdlib>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <thread>
-#include <mutex>
 #include <vector>
-#include <algorithm>
-#include <fcntl.h>
-
-#include <cstdio>
-#include <netinet/in.h>
-#include <errno.h>
-#include <netdb.h>
 #include <poll.h>
-#include <unordered_set>
-#include <signal.h>
-#include <iostream>
 #include <string>
 
+#include "../network_logic/NetworkHelper.h"
+#include "../game_logic/CursesHelper.h"
 #include "../game_logic/Room.h"
+#include "../game_logic/Player.h"
 
 CursesHelper *cursesHelper;
 
-int roomId = 0;
+int roomCounter = 0;
 
-Room * getRoomById(std::string id);
-
-std::vector<Room *> rooms;
-
-void writeData(int socketDescriptor, std::string message);
-
-
-std::string readData(int socketDescriptor);
+bool running;
 
 int serverSocketDescriptor;
 
-void checkpoint(bool condition, std::string anchor);
+int descriptorsCapacity = 16;
 
-void ctrl_c(int);
+int descriptorCounter = 1;
 
-void eventOnServFd(int revents);
+pollfd *pollDescriptors;
 
-void eventOnClientFd(int indexInDescr);
 
-void handleMessage(int fd, std::string message);
+std::vector<Room *> rooms;
 
-int descrCapacity = 16;
+std::vector<std::thread> roomThreads;
 
-int descrCount = 1;
+void cleanAndExit(int);
 
-pollfd *descr;
+void handleServerEvent(int descriptorIndex);
+
+void handleNewClient();
+
+void handleClientEvent(int descriptorIndex);
+
+void handleClientMessage(int descriptor, std::string message);
+
+void handleRoom();
+
+Room *getRoomById(std::string id);
 
 #endif //BOMBERMAN_SERVER_H
