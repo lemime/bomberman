@@ -21,9 +21,11 @@
 
 CursesHelper *cursesHelper;
 
-int roomCounter = 0;
-
 bool running;
+
+short portRangeStart = 1234;
+
+short portRangeStop = 1234;
 
 int serverSocketDescriptor;
 
@@ -32,7 +34,6 @@ int descriptorsCapacity = 16;
 int descriptorCounter = 1;
 
 pollfd *pollDescriptors;
-
 
 std::vector<Room *> rooms;
 
@@ -48,7 +49,9 @@ void handleClientEvent(int descriptorIndex);
 
 void handleClientMessage(int descriptor, std::string message);
 
-void handleRoom();
+void handleRoom(Room *room);
+
+short getFreePort();
 
 Room *getRoomById(std::string id);
 

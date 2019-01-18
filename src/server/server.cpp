@@ -16,8 +16,6 @@ int main(int argc, char **argv) {
     std::ifstream file("../shared/config.txt");
 
     std::string address;
-    short portRangeStart = 1234;
-    short portRangeStop = 1234;
 
     if (file.is_open()) {
         file >> address >> portRangeStart >> portRangeStop;
@@ -85,8 +83,8 @@ void cleanAndExit(int) {
     timeout(1000);
     getch();
 
-    rooms.erase(std::remove_if(rooms.begin(), rooms.end(), [](auto bomb) {
-        delete bomb;
+    rooms.erase(std::remove_if(rooms.begin(), rooms.end(), [](auto room) {
+        delete room;
         return true;
     }), rooms.end());
 
@@ -160,18 +158,26 @@ void handleClientEvent(int decriptorIndex) {
     }
 }
 
+short getFreePort() {
+
+    for (int i = portRangeStart + 1; i <= portRangeStop; ++i) {
+        if (getRoomById(std::to_string(i)) == nullptr) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 Room *getRoomById(std::string id) {
 
     for (auto room: rooms) {
         if (room->id == id) {
+            cursesHelper->checkpoint(true, "Finding room");
             return room;
         }
     }
-    auto room = new Room(0, cursesHelper);
-    room->id = std::to_string(roomCounter++);
-    rooms.push_back(room);
-    cursesHelper->checkpoint(true, "Room not found, creating new room " + room->toString());
-    return room;
+    cursesHelper->checkpoint(false, "Finding room");
+    return nullptr;
 }
 
 void handleClientMessage(int descriptor, std::string message) {
@@ -184,35 +190,45 @@ void handleClientMessage(int descriptor, std::string message) {
         message.erase(0, message.find(delimiter) + delimiter.length());
 
         if (endpoint == "[CREATE_ROOM]") {
-            roomCounter++;
             int mapid = std::stoi(message);
-            auto room = new Room(mapid, cursesHelper);
-            room->id = std::to_string(roomCounter);
-            rooms.push_back(room);
-            cursesHelper->checkpoint(true, "Creating new room with mapid " + room->toString());
-            writeData(cursesHelper, descriptor, "[CREATE_ROOM];" + room->id);
-//            TODO create new thread that handles room connections
-            roomThreads.push_back(std::thread(handleRoom));
-            cursesHelper->checkpoint(true, "Creating new thread for room with id " + room->id);
+            int port = getFreePort();
+            if (port != -1) {
+                auto room = new Room(mapid, cursesHelper);
+                room->id = std::to_string(port);
+                rooms.push_back(room);
+                cursesHelper->checkpoint(true, "Creating new room with mapid " + room->toString());
+                writeData(cursesHelper, descriptor, "[CREATE_ROOM_SUCCESS];" + room->id + "");
+                roomThreads.push_back(std::thread(handleRoom, room));
+            } else {
+                writeData(cursesHelper, descriptor, "[SERVER_FULL];0");
+            }
         } else if (endpoint == "[JOIN_ROOM]") {
             auto room = getRoomById(message);
             if (room->join(new Player(descriptor, "Gracz " + std::to_string(descriptor), 0, 0))) {
-                writeData(cursesHelper, descriptor, "[JOIN_ROOM];" + room->toString());
+                writeData(cursesHelper, descriptor, "[JOIN_ROOM_SUCCESS];" + room->toString());
             } else {
                 writeData(cursesHelper, descriptor, "[ROOM_FULL];0");
             }
         } else if (endpoint == "[GET_ROOMS_COUNT]") {
-            writeData(cursesHelper, descriptor, "[GET_ROOMS_COUNT];" + std::to_string(rooms.size()));
+            writeData(cursesHelper, descriptor, "[GET_ROOMS_COUNT_SUCCESS];" + std::to_string(rooms.size()));
         } else if (endpoint == "[GET_ROOM]") {
             auto room = rooms.at(static_cast<unsigned long>(std::stoi(message)));
-            writeData(cursesHelper, descriptor, "[GET_ROOM];" + room->toString());
+            writeData(cursesHelper, descriptor, "[GET_ROOM_SUCCESS];" + room->toString());
         }
     }
 }
 
-void handleRoom() {
+void handleRoom(Room *room) {
 
     while (running) {
 
     }
+
+    rooms.erase(std::remove_if(rooms.begin(), rooms.end(), [room](auto element) {
+        if (room == element) {
+            delete room;
+            return true;
+        }
+        return false;
+    }), rooms.end());
 };
