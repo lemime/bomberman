@@ -15,15 +15,15 @@
 
 class Room {
 private:
-    std::vector<Player *> players;
-
     CursesHelper *cursesHelper;
-
-    Game *game;
 
     int slots;
 
 public:
+    Game *game;
+
+    std::vector<Player *> players;
+
     int mapid;
 
     std::string id;
@@ -38,11 +38,15 @@ public:
 
     bool join(Player *player);
 
+    void leave(int playerId);
+
     void draw();
 
     void startGame();
 
     std::string toString();
+
+    bool isReady();
 };
 
 #endif //BOMBERMAN_ROOM_H

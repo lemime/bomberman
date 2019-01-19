@@ -22,6 +22,8 @@ private:
 
     std::vector<Player *> players;
 
+    bool running = false;
+
 public:
     Game(CursesHelper *cursesHelper, Board *board);
 
@@ -30,6 +32,8 @@ public:
     void spawnPlayer(Player *player);
 
     Player *getPlayer(int id);
+
+    bool isRunning();
 };
 
 #endif //BOMBERMAN_GAME_H

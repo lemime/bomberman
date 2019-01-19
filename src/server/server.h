@@ -13,11 +13,14 @@
 #include <vector>
 #include <poll.h>
 #include <string>
+#include <mutex>
 
 #include "../network_logic/NetworkHelper.h"
 #include "../game_logic/CursesHelper.h"
 #include "../game_logic/Room.h"
 #include "../game_logic/Player.h"
+
+std::mutex mutex;
 
 CursesHelper *cursesHelper;
 

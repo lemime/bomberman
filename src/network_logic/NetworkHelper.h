@@ -14,4 +14,5 @@ bool writeData(CursesHelper *cursesHelper, int socketDescriptor, std::string mes
 
 std::string readData(CursesHelper *cursesHelper, int socketDescriptor);
 
+
 #endif //BOMBERMAN_NETWORKHELPER_H

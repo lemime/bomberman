@@ -84,20 +84,24 @@ void CursesHelper::printOptions(std::vector<std::string> options, int cursorPos)
 void CursesHelper::print(std::string text) {
 
     int x = 0, y = 0;
+    mutex.lock();
     getyx(currentWindow, y, x);
     if (y >= windowHelper->getNlines() - 5) {
         clear();
     }
     wprintw(currentWindow, text.c_str());
     wrefresh(currentWindow);
+    mutex.unlock();
 }
 
 void CursesHelper::printAtCenter(std::string text) {
 
     int wincols, winrows;
+    mutex.lock();
     getmaxyx(currentWindow, winrows, wincols);
     mvwprintw(currentWindow, winrows / 2, static_cast<int>((wincols - text.size()) / 2), text.c_str());
     wrefresh(currentWindow);
+    mutex.unlock();
 }
 
 void CursesHelper::clear() {

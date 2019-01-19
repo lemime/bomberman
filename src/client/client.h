@@ -27,6 +27,7 @@
 #include <netdb.h>
 #include <poll.h>
 
+#include "../network_logic/NetworkHelper.h"
 #include "../game_logic/CursesHelper.h"
 #include "../game_logic/Board.h"
 #include "../game_logic/Room.h"
@@ -34,11 +35,11 @@
 
 CursesHelper *cursesHelper;
 
-void writeData(std::string message);
-
-std::string readData();
+std::string address;
 
 int socketDescriptor;
+
+int roomSocketDescriptor;
 
 void ctrl_c(int);
 
@@ -55,5 +56,7 @@ int joinRoom(std::string roomId);
 int createRoom(int mapid);
 
 void checkpoint(bool condition, std::string anchor);
+
+int roomServerFail();
 
 #endif //BOMBERMAN_CLIENT_H

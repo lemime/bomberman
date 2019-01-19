@@ -8,6 +8,8 @@ Game::Game(CursesHelper *cursesHelper, Board *board) : cursesHelper(cursesHelper
 
 int Game::start() {
 
+    running = true;
+
     int keyVal;
 
     Player *player = getPlayer(0);
@@ -103,4 +105,9 @@ Player *Game::getPlayer(int id) {
         };
     }
     return nullptr;
+}
+
+bool Game::isRunning() {
+
+    return running;
 }

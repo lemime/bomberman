@@ -160,7 +160,7 @@ void handleClientEvent(int decriptorIndex) {
 
 short getFreePort() {
 
-    for (int i = portRangeStart + 1; i <= portRangeStop; ++i) {
+    for (short i = portRangeStart + 1; i <= portRangeStop; ++i) {
         if (getRoomById(std::to_string(i)) == nullptr) {
             return i;
         }
@@ -183,7 +183,7 @@ Room *getRoomById(std::string id) {
 void handleClientMessage(int descriptor, std::string message) {
 
     if (message.length() > 0) {
-        cursesHelper->print("Handle message: " + message + "\n");
+        cursesHelper->checkpoint(true, "Handling message: " + message);
 
         std::string delimiter = ";";
         std::string endpoint = message.substr(0, message.find(delimiter));
@@ -195,22 +195,15 @@ void handleClientMessage(int descriptor, std::string message) {
             if (port != -1) {
                 auto room = new Room(mapid, cursesHelper);
                 room->id = std::to_string(port);
-                rooms.push_back(room);
                 cursesHelper->checkpoint(true, "Creating new room with mapid " + room->toString());
-                writeData(cursesHelper, descriptor, "[CREATE_ROOM_SUCCESS];" + room->id + "");
+                rooms.push_back(room);
                 roomThreads.push_back(std::thread(handleRoom, room));
+                writeData(cursesHelper, descriptor, "[CREATE_ROOM_SUCCESS];" + room->id + ";");
             } else {
-                writeData(cursesHelper, descriptor, "[SERVER_FULL];0");
-            }
-        } else if (endpoint == "[JOIN_ROOM]") {
-            auto room = getRoomById(message);
-            if (room->join(new Player(descriptor, "Gracz " + std::to_string(descriptor), 0, 0))) {
-                writeData(cursesHelper, descriptor, "[JOIN_ROOM_SUCCESS];" + room->toString());
-            } else {
-                writeData(cursesHelper, descriptor, "[ROOM_FULL];0");
+                writeData(cursesHelper, descriptor, "[SERVER_FULL];");
             }
         } else if (endpoint == "[GET_ROOMS_COUNT]") {
-            writeData(cursesHelper, descriptor, "[GET_ROOMS_COUNT_SUCCESS];" + std::to_string(rooms.size()));
+            writeData(cursesHelper, descriptor, "[GET_ROOMS_COUNT_SUCCESS];" + std::to_string(rooms.size()) + ";");
         } else if (endpoint == "[GET_ROOM]") {
             auto room = rooms.at(static_cast<unsigned long>(std::stoi(message)));
             writeData(cursesHelper, descriptor, "[GET_ROOM_SUCCESS];" + room->toString());
@@ -220,9 +213,140 @@ void handleClientMessage(int descriptor, std::string message) {
 
 void handleRoom(Room *room) {
 
-    while (running) {
+    int roomDescriptorsCapacity = room->board->getSlotsSize() + 1;
 
+    int roomDescriptorCounter = 1;
+
+    pollfd *roomPollDescriptors;
+
+    int roomServerSocketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    cursesHelper->checkpoint(roomServerSocketDescriptor != -1,
+                             "Creating server socket for room number " + room->id);
+
+    const int one = 1;
+    cursesHelper->checkpoint(!setsockopt(roomServerSocketDescriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)),
+                             "Setting reusable address for room number " + room->id);
+
+    sockaddr_in serverAddress{.sin_family=AF_INET, .sin_port=htons(std::stoi(room->id)), .sin_addr={INADDR_ANY}};
+    cursesHelper->checkpoint(!bind(roomServerSocketDescriptor, (sockaddr *) &serverAddress, sizeof(serverAddress)),
+                             "Binding server address for room number " + room->id);
+
+    cursesHelper->checkpoint(!listen(roomServerSocketDescriptor, 1),
+                             "Listening for connections for room number " + room->id);
+
+    roomPollDescriptors = (pollfd *) malloc(sizeof(pollfd) * roomDescriptorsCapacity);
+
+    roomPollDescriptors[0].fd = roomServerSocketDescriptor;
+    roomPollDescriptors[0].events = POLLIN;
+
+    bool forceQuit = false;
+
+    while (!forceQuit && running) {
+        int ready = poll(roomPollDescriptors, roomDescriptorCounter, 5000);
+        if (ready == -1) {
+            cursesHelper->checkpoint(false, "Creating poll for room number " + room->id);
+            forceQuit = true;
+        }
+
+        for (int i = 0; i < roomDescriptorCounter && ready > 0; ++i) {
+            if (roomPollDescriptors[i].revents) {
+                if (roomPollDescriptors[i].fd == roomServerSocketDescriptor) {
+                    cursesHelper->checkpoint(true, "Handling event on server descriptor for room number " + room->id);
+
+                    auto revents = roomPollDescriptors[i].revents;
+
+                    if (revents & ~POLLIN) {
+                        cursesHelper->checkpoint(false,
+                                                 "Server socket receiving not POLLIN for room number " + room->id);
+                        forceQuit = true;
+                    }
+
+                    if (revents & POLLIN) {
+                        sockaddr_in clientAddr{};
+                        socklen_t clientAddrSize = sizeof(clientAddr);
+
+                        auto clientFd = accept(roomServerSocketDescriptor, (sockaddr *) &clientAddr, &clientAddrSize);
+                        cursesHelper->checkpoint(clientFd != -1, "Accepting new client for room number " + room->id);
+
+                        if (roomDescriptorCounter == roomDescriptorsCapacity) {
+                            roomDescriptorsCapacity <<= 1;
+                            roomPollDescriptors = (pollfd *) realloc(roomPollDescriptors,
+                                                                     sizeof(pollfd) * roomDescriptorsCapacity);
+                        }
+
+                        roomPollDescriptors[roomDescriptorCounter].fd = clientFd;
+                        roomPollDescriptors[roomDescriptorCounter].events = POLLIN | 0x2000;
+                        roomDescriptorCounter++;
+
+                        cursesHelper->checkpoint(true, std::string("Room ") + room->id +
+                                                       " setting up new connection with: " +
+                                                       inet_ntoa(clientAddr.sin_addr) +
+                                                       ":" +
+                                                       std::to_string(ntohs(clientAddr.sin_port)));
+                    }
+
+                } else {
+                    cursesHelper->checkpoint(true, "Handling event on client descriptor for room number " + room->id);
+
+                    auto clientFd = roomPollDescriptors[i].fd;
+                    auto revents = roomPollDescriptors[i].revents;
+
+                    if (revents & POLLIN) {
+                        std::string message = readData(cursesHelper, clientFd);
+
+                        if (message.length() > 0) {
+                            cursesHelper->checkpoint(true,
+                                                     "Handling message: " + message + " for room number " + room->id);
+
+                            std::string delimiter = ";";
+                            std::string endpoint = message.substr(0, message.find(delimiter));
+                            message.erase(0, message.find(delimiter) + delimiter.length());
+
+                            if (endpoint == "[JOIN_ROOM]") {
+                                if (room->join(new Player(clientFd, "Gracz " + std::to_string(clientFd), 0, 0))) {
+                                    writeData(cursesHelper, clientFd, "[JOIN_ROOM_SUCCESS];" + room->toString());
+                                } else {
+                                    writeData(cursesHelper, clientFd, "[ROOM_FULL];");
+                                }
+                            } else if (endpoint == "[LEAVE_ROOM]") {
+                                roomPollDescriptors[i] = roomPollDescriptors[roomDescriptorCounter - 1];
+                                roomDescriptorCounter--;
+                                room->leave(clientFd);
+                                shutdown(clientFd, SHUT_RDWR);
+                                close(clientFd);
+                            }
+                        }
+                    }
+
+                    if (revents & ~POLLIN) {
+                        roomPollDescriptors[i] = roomPollDescriptors[roomDescriptorCounter - 1];
+                        roomDescriptorCounter--;
+                        room->leave(clientFd);
+                        shutdown(clientFd, SHUT_RDWR);
+                        close(clientFd);
+                    }
+                }
+                ready--;
+            }
+        }
+        for (auto player: room->players) {
+            auto clientFd = player->id;
+            if (room->isReady() && !room->game->isRunning()) {
+                writeData(cursesHelper, clientFd, "[GAME_STARTS];" + room->toString());
+            } else {
+                writeData(cursesHelper, clientFd, "[PING];");
+            }
+        }
     }
+
+    for (int i = 1; i < roomDescriptorCounter; i++) {
+        cursesHelper->checkpoint(true, "Removing descriptor for " + room->id + "\n");
+        shutdown(roomPollDescriptors[i].fd, SHUT_RDWR);
+        close(roomPollDescriptors[i].fd);
+    }
+    close(roomServerSocketDescriptor);
+
+    cursesHelper->checkpoint(true, "Room closing " + room->id);
 
     rooms.erase(std::remove_if(rooms.begin(), rooms.end(), [room](auto element) {
         if (room == element) {
@@ -231,4 +355,5 @@ void handleRoom(Room *room) {
         }
         return false;
     }), rooms.end());
+
 };

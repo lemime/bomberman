@@ -8,12 +8,16 @@
 #include <ncurses.h>
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "WindowHelper.h"
+
 
 class CursesHelper {
 
 private:
+    std::mutex mutex;
+
     WINDOW *currentWindow;
 
 public:
