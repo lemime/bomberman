@@ -5,58 +5,44 @@
 #ifndef BOMBERMAN_CLIENT_H
 #define BOMBERMAN_CLIENT_H
 
-#include <cstdlib>
+#include <string>
+
 #include <unistd.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <netdb.h>
-#include <thread>
-#include <fcntl.h>
-
-#include <iostream>
-#include <list>
 #include <vector>
-
-#include <cstdlib>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <netdb.h>
-#include <poll.h>
+#include <fstream>
+#include <ncurses.h>
 
 #include "../network_logic/NetworkHelper.h"
 #include "../game_logic/CursesHelper.h"
 #include "../game_logic/Board.h"
 #include "../game_logic/Room.h"
-#include "../game_logic/Game.h"
+#include "../game_logic/Board.h"
 
 CursesHelper *cursesHelper;
 
-std::string address;
+std::string serverAddress;
 
-int socketDescriptor;
+std::string roomHandlerServerPort;
 
-int roomSocketDescriptor;
+int main();
 
-void ctrl_c(int);
-
-int selectMap(int chosen = 0);
-
-int selectRoom(int chosen = 0);
+void cleanAndExit(int);
 
 int selectGameType();
 
-int startGame(Room *room);
+int selectMap(int chosen = 0);
 
-int joinRoom(std::string roomId);
+int createRoom(int mapId);
 
-int createRoom(int mapid);
+int joinRoom(std::string port);
 
-void checkpoint(bool condition, std::string anchor);
+int waitingForPlayers(int socket);
 
-int roomServerFail();
+int startGame(int socket, Room *room);
+
+int backToMenu(std::string message);
+
+int browseRooms(int socket, int chosen = 0);
 
 #endif //BOMBERMAN_CLIENT_H

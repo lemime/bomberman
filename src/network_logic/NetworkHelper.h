@@ -7,12 +7,18 @@
 
 #include <string>
 #include <unistd.h>
+#include <netdb.h>
 
 #include "../game_logic/CursesHelper.h"
+
+extern const std::string delimiter;
 
 bool writeData(CursesHelper *cursesHelper, int socketDescriptor, std::string message);
 
 std::string readData(CursesHelper *cursesHelper, int socketDescriptor);
 
+int connectToSocket(CursesHelper *cursesHelper, const std::string &address, const std::string &port);
+
+std::string splitMessage(std::string &message);
 
 #endif //BOMBERMAN_NETWORKHELPER_H

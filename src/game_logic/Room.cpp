@@ -12,7 +12,7 @@ Room::Room(int mapid, CursesHelper *cursesHelper) : mapid(mapid), cursesHelper(c
 }
 
 Room::Room(std::string unparsed, CursesHelper *cursesHelper) : cursesHelper(cursesHelper) {
-    std::string delimiter = ";";
+
     std::string parsedRoomId = unparsed.substr(0, unparsed.find(delimiter));
     unparsed.erase(0, unparsed.find(delimiter) + delimiter.length());
     std::string parsedMapId = unparsed.substr(0, unparsed.find(delimiter));

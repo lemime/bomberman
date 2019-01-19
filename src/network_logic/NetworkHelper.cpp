@@ -4,6 +4,8 @@
 
 #include "NetworkHelper.h"
 
+const std::string delimiter = ";";
+
 std::string readData(CursesHelper *cursesHelper, int socketDescriptor) {
 
     char buffer[255] = "";
@@ -20,4 +22,31 @@ bool writeData(CursesHelper *cursesHelper, int socketDescriptor, std::string mes
     cursesHelper->checkpoint(ret != -1, "Writing data to descriptor " + std::string(buffer));
     delete[] buffer;
     return ret != -1;
+}
+
+int connectToSocket(CursesHelper *cursesHelper, const std::string &address, const std::string &port) {
+
+    addrinfo *resolved, hints = {.ai_flags=0, .ai_family=AF_INET, .ai_socktype=SOCK_STREAM};
+    cursesHelper->checkpoint(!getaddrinfo(address.c_str(), port.c_str(), &hints, &resolved) && resolved,
+                             "Getting address info");
+
+    int socketDescriptor = socket(resolved->ai_family, resolved->ai_socktype, 0);
+    cursesHelper->checkpoint(socketDescriptor != -1,
+                             "Creating socket");
+
+    int error = connect(socketDescriptor, resolved->ai_addr, resolved->ai_addrlen);
+    cursesHelper->checkpoint(!error,
+                             "Connecting to a socket");
+
+    freeaddrinfo(resolved);
+
+    return error ? -1 : socketDescriptor;
+}
+
+std::string splitMessage(std::string &message) {
+
+    std::string endpoint = message.substr(0, message.find(delimiter));
+    message.erase(0, message.find(delimiter) + delimiter.length());
+
+    return endpoint;
 }

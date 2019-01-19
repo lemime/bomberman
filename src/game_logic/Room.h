@@ -13,6 +13,8 @@
 #include "Player.h"
 #include "Game.h"
 
+#include "../network_logic/NetworkHelper.h"
+
 class Room {
 private:
     CursesHelper *cursesHelper;

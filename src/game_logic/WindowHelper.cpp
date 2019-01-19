@@ -7,7 +7,9 @@
 WindowHelper::WindowHelper(int nlines, int ncols, int nwindows) : nlines(nlines), ncols(ncols) {
 
     for (int i = 0; i < nwindows; i++) {
-        windows.push_back(newwin(10, 10, y_margin, x_margin));
+        auto window = newwin(10, 10, y_margin, x_margin);
+        windows.push_back(window);
+//        nodelay(window, true);
         refresh();
     }
 }

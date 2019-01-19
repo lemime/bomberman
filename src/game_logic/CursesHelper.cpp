@@ -83,10 +83,11 @@ void CursesHelper::printOptions(std::vector<std::string> options, int cursorPos)
 
 void CursesHelper::print(std::string text) {
 
-    int x = 0, y = 0;
+    int x = 0, y = 0, maxx = 0, maxy = 0;
     mutex.lock();
     getyx(currentWindow, y, x);
-    if (y >= windowHelper->getNlines() - 5) {
+    getmaxyx(currentWindow, maxy, maxx);
+    if (y >= maxy - 1) {
         clear();
     }
     wprintw(currentWindow, text.c_str());

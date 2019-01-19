@@ -16,11 +16,11 @@ private:
 
     int nlines, ncols;
 
+public:
     int x_margin = 2;
 
     int y_margin = 1;
 
-public:
     WindowHelper(int nlines, int ncols, int nwindows);
 
     WINDOW *getWindowAt(int window);

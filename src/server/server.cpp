@@ -185,7 +185,6 @@ void handleClientMessage(int descriptor, std::string message) {
     if (message.length() > 0) {
         cursesHelper->checkpoint(true, "Handling message: " + message);
 
-        std::string delimiter = ";";
         std::string endpoint = message.substr(0, message.find(delimiter));
         message.erase(0, message.find(delimiter) + delimiter.length());
 
@@ -298,13 +297,13 @@ void handleRoom(Room *room) {
                             cursesHelper->checkpoint(true,
                                                      "Handling message: " + message + " for room number " + room->id);
 
-                            std::string delimiter = ";";
+
                             std::string endpoint = message.substr(0, message.find(delimiter));
                             message.erase(0, message.find(delimiter) + delimiter.length());
 
-                            if (endpoint == "[JOIN_ROOM]") {
+                            if (endpoint == "[JOIN]") {
                                 if (room->join(new Player(clientFd, "Gracz " + std::to_string(clientFd), 0, 0))) {
-                                    writeData(cursesHelper, clientFd, "[JOIN_ROOM_SUCCESS];" + room->toString());
+                                    writeData(cursesHelper, clientFd, "[JOIN_SUCCESS];" + room->toString());
 
                                     if (!room->running && room->isReady()) {
                                         room->running = true;

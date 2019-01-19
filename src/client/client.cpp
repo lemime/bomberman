@@ -4,101 +4,89 @@
 
 #include "client.h"
 
-int waitingForPlayers() {
+int main() {
+
+    cursesHelper = new CursesHelper();
+
+    signal(SIGINT, cleanAndExit);
+
+    std::ifstream file("../shared/config.txt");
+
+    if (file.is_open()) {
+        file >> serverAddress >> roomHandlerServerPort;
+    } else {
+        cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
+        cursesHelper->setContext(0);
+        cursesHelper->printAtCenter("Error reading configuration file\n");
+    }
+
+    selectGameType();
 
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
-    cursesHelper->printAtCenter("Waiting for another players");
+    cursesHelper->printAtCenter("Press any key to exit \n");
+    getch();
+    cleanAndExit(SIGINT);
+}
 
-    while (true) {
+void cleanAndExit(int) {
 
-        int keyVal = getch();
-        if (keyVal == 127) {
-            close(roomSocketDescriptor);
-            return selectGameType();
-        } else {
-            writeData(cursesHelper, roomSocketDescriptor, "[GET_STATUS];");
+    cursesHelper->checkpoint(true, "Closing client");
+    delete cursesHelper;
+    exit(0);
+}
 
-            std::string message = readData(cursesHelper, roomSocketDescriptor);
-            std::string delimiter = ";";
-            std::string endpoint = message.substr(0, message.find(delimiter));
-            message.erase(0, message.find(delimiter) + delimiter.length());
+int selectGameType() {
 
-            if (endpoint == "[STATUS_RUNNING]") {
-                auto room = new Room(message, cursesHelper);
-                return startGame(room);
-            } else if (endpoint == "[STATUS_WAITING]") {
-                continue;
-            } else {
-                close(roomSocketDescriptor);
-                return roomServerFail();
+    cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
+    cursesHelper->setContext(0);
+    cursesHelper->printAtCenter("Press any key to start \n");
+    getch();
+
+    int socket = connectToSocket(cursesHelper, serverAddress, roomHandlerServerPort);
+
+    if (socket == -1) {
+        cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
+        cursesHelper->setContext(1);
+        cursesHelper->printAtCenter("Server is unavailable, please try again later \n");
+        cursesHelper->setContext(0);
+        std::vector<std::string> gameTypeOptions = {"Try again", "Exit game"};
+        switch (cursesHelper->handleSelection(gameTypeOptions)) {
+            case 0: {
+                return selectGameType();
             }
-        }
-    }
-}
-
-int roomServerFail() {
-
-    std::vector<std::string> options = {"Back"};
-    cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
-    cursesHelper->setContext(1);
-    cursesHelper->printAtCenter("You have lost connection to the server");
-    cursesHelper->setContext(0);
-    switch (cursesHelper->handleSelection(options)) {
-        default: {
-            return selectGameType();
-        }
-    }
-}
-
-int serverIsFull() {
-
-    std::vector<std::string> options = {"Back"};
-    cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
-    cursesHelper->setContext(1);
-    cursesHelper->printAtCenter("Server is currently full");
-    cursesHelper->setContext(0);
-    switch (cursesHelper->handleSelection(options)) {
-        default: {
-            return selectGameType();
-        }
-    }
-}
-
-int serverIsEmpty() {
-
-    std::vector<std::string> options = {"Back"};
-    cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
-    cursesHelper->setContext(1);
-    cursesHelper->printAtCenter("Server is currently empty, host a game to get started");
-    cursesHelper->setContext(0);
-    switch (cursesHelper->handleSelection(options)) {
-        default: {
-            return selectGameType();
-        }
-    }
-}
-
-int roomIsFull() {
-
-    std::vector<std::string> options = {"Back"};
-    cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
-    cursesHelper->setContext(1);
-    cursesHelper->printAtCenter("Room is currently full");
-    cursesHelper->setContext(0);
-    switch (cursesHelper->handleSelection(options)) {
-        default: {
-            return selectRoom();
-        }
+            default: {
+                return -1;
+            }
+        };
+    } else {
+        cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
+        cursesHelper->setContext(0);
+        std::vector<std::string> gameTypeOptions = {"Host a game", "Join a game", "Exit game"};
+        switch (cursesHelper->handleSelection(gameTypeOptions)) {
+            case 0: {
+                shutdown(socket, SHUT_RDWR);
+                close(socket);
+                return selectMap();
+            }
+            case 1: {
+                return browseRooms(socket);
+            }
+            default: {
+                return -1;
+            }
+        };
     }
 }
 
 int selectMap(int chosen) {
 
-    std::vector<std::string> mapOptions = {"Previous", "Next", "Select", "Back"};
+    std::vector<std::string> mapOptions = {"Previous", "Next", "Select", "Main menu"};
     cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
     cursesHelper->setContext(1);
     Board *board = new Board(maps.at(static_cast<unsigned long>(chosen)), cursesHelper);
+    cursesHelper->print("Maps available: " + std::to_string(maps.size()) + "\n");
+    cursesHelper->print("Current map: " + std::to_string(chosen + 1) + "\n");
     board->printStats();
     board->draw();
     delete board;
@@ -118,101 +106,93 @@ int selectMap(int chosen) {
         case 2 : {
             return createRoom(chosen);
         }
-        case 3 : {
-            return selectGameType();
-        }
         default: {
-            return -1;
-        }
-    }
-}
-
-int selectRoom(int chosen) {
-
-    std::vector<std::string> roomOptions = {"Previous", "Next", "Join", "Back"};
-    cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
-    cursesHelper->setContext(1);
-
-    writeData(cursesHelper, socketDescriptor, "[GET_ROOMS_COUNT];");
-
-    std::string message = readData(cursesHelper, socketDescriptor);
-    std::string delimiter = ";";
-    std::string endpoint = message.substr(0, message.find(delimiter));
-    message.erase(0, message.find(delimiter) + delimiter.length());
-
-    int rooms = 0;
-    if (endpoint == "[GET_ROOMS_COUNT_SUCCESS]") {
-        rooms = std::stoi(message);
-    } else {
-        return selectGameType();
-    };
-
-    if (rooms > 0) {
-        writeData(cursesHelper, socketDescriptor, "[GET_ROOM];" + std::to_string(chosen) + ";");
-
-        message = readData(cursesHelper, socketDescriptor);
-        endpoint = message.substr(0, message.find(delimiter));
-        message.erase(0, message.find(delimiter) + delimiter.length());
-
-        if (endpoint == "[GET_ROOM_SUCCESS]") {
-            auto room = new Room(message, cursesHelper);
-            room->draw();
-            std::string roomId = room->id;
-            delete room;
-
-            cursesHelper->setContext(0);
-            switch (cursesHelper->handleSelection(roomOptions)) {
-                case -1 : {
-                    return selectGameType();
-                }
-                case 0 : {
-                    chosen = (chosen - 1 + rooms) % rooms;
-                    return selectRoom(chosen);
-                }
-                case 1 : {
-                    chosen = (chosen + 1 + rooms) % rooms;
-                    return selectRoom(chosen);
-                }
-                case 2 : {
-                    return joinRoom(roomId);
-                }
-                case 3 : {
-                    return selectGameType();
-                }
-                default: {
-                    return -1;
-                }
-            }
-        } else {
             return selectGameType();
         }
-    } else {
-        return serverIsEmpty();
     }
 }
 
-int selectGameType() {
+int createRoom(int mapId) {
+
+    int socket = connectToSocket(cursesHelper, serverAddress, roomHandlerServerPort);
+
+    std::string msgToSend = "[CREATE_ROOM];" + std::to_string(mapId) + ";";
+    writeData(cursesHelper, socket, msgToSend);
+
+    std::string receivedMsg = readData(cursesHelper, socket);
+    std::string endpoint = splitMessage(receivedMsg);
+
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+
+    if (endpoint == "[CREATE_ROOM_SUCCESS]") {
+        std::string port = splitMessage(receivedMsg);
+        return joinRoom(port);
+    } else {
+        return backToMenu(endpoint == "[SERVER_FULL]" ? "Server is currently full" : "Unhandled error: createRoom");
+    }
+}
+
+int joinRoom(std::string port) {
+
+    int socket = connectToSocket(cursesHelper, serverAddress, port);
+
+    if (socket == -1) {
+        backToMenu("Room server is not responding, please try again later");
+    }
+
+    std::string msgToSend = "[JOIN];" + port + ";";
+    writeData(cursesHelper, socket, msgToSend);
+
+    std::string receivedMsg = readData(cursesHelper, socket);
+    std::string endpoint = splitMessage(receivedMsg);
+
+    if (endpoint == "[JOIN_SUCCESS]") {
+        return waitingForPlayers(socket);
+    } else {
+        shutdown(socket, SHUT_RDWR);
+        close(socket);
+        return backToMenu(endpoint == "[ROOM_FULL]" ? "Sorry. Room is already full" : "Unhandled error: joinRoom");
+    }
+}
+
+int waitingForPlayers(int socket) {
 
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
-    std::vector<std::string> gameTypeOptions = {"Host a game", "Join a game", "Exit game"};
-    switch (cursesHelper->handleSelection(gameTypeOptions)) {
-        case 0: {
-            return selectMap();
+    cursesHelper->printAtCenter("Waiting for another players to join");
+
+    int keyVal;
+
+    while (true) {
+
+        getch();
+        if (keyVal == 127) {
+            shutdown(socket, SHUT_RDWR);
+            close(socket);
+            return backToMenu("You have left the room");
+        } else {
+            std::string msgToSend = "[GET_STATUS];";
+            writeData(cursesHelper, socket, msgToSend);
+
+            std::string receivedMsg = readData(cursesHelper, socket);
+            std::string endpoint = splitMessage(receivedMsg);
+
+            if (endpoint == "[STATUS_RUNNING]") {
+                auto room = new Room(receivedMsg, cursesHelper);
+                return startGame(socket, room);
+            } else if (endpoint == "[STATUS_WAITING]") {
+                continue;
+            } else {
+                shutdown(socket, SHUT_RDWR);
+                close(socket);
+                return backToMenu("Unhandled error: waitingForPlayers");
+            }
         }
-        case 1: {
-            return selectRoom();
-        }
-        case 2: {
-            return -1;
-        }
-        default: {
-            return -1;
-        }
-    };
+    }
 }
 
-int startGame(Room *room) {
+int startGame(int socket, Room *room) {
 
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
@@ -223,70 +203,64 @@ int startGame(Room *room) {
     while (true) {
         cursesHelper->clear();
         room->board->draw();
-        keyVal = getch();
+        getch();
 
         switch (keyVal) {
             case 127: {
-                close(roomSocketDescriptor);
+                shutdown(socket, SHUT_RDWR);
+                close(socket);
                 delete room;
-                return selectGameType();
+                return backToMenu("You have left the room");
             }
             case KEY_UP: {
-                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];0;-1;");
+                std::string msgToSend = "[MOVE];0;-1;";
+                writeData(cursesHelper, socket, msgToSend);
             }
             case KEY_DOWN: {
-                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];0;1;");
+                std::string msgToSend = "[MOVE];0;1;";
+                writeData(cursesHelper, socket, msgToSend);
             }
             case KEY_LEFT: {
-                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];-1;0;");
+                std::string msgToSend = "[MOVE];-1;0;";
+                writeData(cursesHelper, socket, msgToSend);
             }
             case KEY_RIGHT: {
-                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];1;0;");
+                std::string msgToSend = "[MOVE];1;0;";
+                writeData(cursesHelper, socket, msgToSend);
             }
             case ' ': {
-                writeData(cursesHelper, roomSocketDescriptor, "[SPAWN_BOMB];");
+                std::string msgToSend = "[SPAWN_BOMB];";
+                writeData(cursesHelper, socket, msgToSend);
             }
-            default: {
-                std::string message = readData(cursesHelper, roomSocketDescriptor);
+        }
 
-                std::string delimiter = ";";
-                std::string endpoint = message.substr(0, message.find(delimiter));
-                message.erase(0, message.find(delimiter) + delimiter.length());
+        std::string receivedMsg = readData(cursesHelper, socket);
+        std::string endpoint = splitMessage(receivedMsg);
 
-                if (endpoint == "[TRIGGER]") {
-                    std::string trigger = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
+        if (endpoint == "[CURRENT_TIME]") {
+            std::string currentTime = splitMessage(receivedMsg);
+            room->board->handleTriggerables(std::stof(currentTime));
+            room->board->cleanExplosions();
+            room->board->createExplosions();
+        } else if (endpoint == "[MOVE]") {
+            int playerId = std::stoi(splitMessage(receivedMsg));
 
-                    room->board->handleTriggerables(std::stof(trigger));
-                    room->board->cleanExplosions();
-                    room->board->createExplosions();
-                } else if (endpoint == "[MOVE]") {
-                    std::string playerId = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
+            int xOffset = std::stoi(splitMessage(receivedMsg));
 
-                    std::string x = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
+            int yOffset = std::stoi(splitMessage(receivedMsg));
 
-                    std::string y = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
+            auto player = room->game->getPlayer(playerId);
+            if (player != nullptr) {
+                room->board->moveFragment(player, player->x + xOffset, player->y + yOffset);
+            }
+        } else if (endpoint == "[SPAWN_BOMB]") {
+            int playerId = std::stoi(splitMessage(receivedMsg));
 
-                    auto player = room->game->getPlayer(std::stoi(playerId));
-                    if (player != nullptr) {
-                        room->board->moveFragment(player, player->x + std::stoi(x), player->y + std::stoi(y));
-                    }
-                } else if (endpoint == "[SPAWN_BOMB]") {
-                    std::string playerId = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
+            float trigger = std::stof(splitMessage(receivedMsg));
 
-                    std::string trigger = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
-
-                    auto player = room->game->getPlayer(std::stoi(playerId));
-                    if (player != nullptr) {
-                        room->board->spawnBomb(new Bomb(player, std::stof(trigger)));
-                    }
-                }
-                break;
+            auto player = room->game->getPlayer(playerId);
+            if (player != nullptr) {
+                room->board->spawnBomb(new Bomb(player, trigger));
             }
         }
 
@@ -296,143 +270,84 @@ int startGame(Room *room) {
     }
 
     delete room;
-    close(roomSocketDescriptor);
+    shutdown(socket, SHUT_RDWR);
+    close(socket);
+    return backToMenu("The game has ended");
+}
+
+int backToMenu(std::string message) {
+
+    std::vector<std::string> options = {"Back"};
+    cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
+    cursesHelper->setContext(1);
+    cursesHelper->printAtCenter(message);
+    cursesHelper->setContext(0);
+    cursesHelper->handleSelection(options);
     return selectGameType();
 }
 
-int createRoom(int mapId) {
+int browseRooms(int socket, int chosen) {
 
-    std::string message = "[CREATE_ROOM];" + std::to_string(mapId) + ";";
-    writeData(cursesHelper, socketDescriptor, message);
+    std::vector<std::string> roomOptions = {"Previous", "Next", "Join", "Back"};
+    cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
+    cursesHelper->setContext(1);
 
-    message = readData(cursesHelper, socketDescriptor);
-    std::string delimiter = ";";
-    std::string endpoint = message.substr(0, message.find(delimiter));
-    message.erase(0, message.find(delimiter) + delimiter.length());
+    std::string msgToSend = "[GET_ROOMS_COUNT];";
+    writeData(cursesHelper, socket, msgToSend);
 
-    if (endpoint == "[CREATE_ROOM_SUCCESS]") {
-        std::string roomId = message.substr(0, message.find(delimiter));
-        message.erase(0, message.find(delimiter) + delimiter.length());
-        return joinRoom(roomId);
-    } else if (endpoint == "[SERVER_FULL]") {
-        return serverIsFull();
+    std::string receivedMsg = readData(cursesHelper, socket);
+    std::string endpoint = splitMessage(receivedMsg);
+
+    if (endpoint == "[GET_ROOMS_COUNT_SUCCESS]") {
+        int rooms = std::stoi(receivedMsg);
+
+        if (rooms > 0) {
+            msgToSend = "[GET_ROOM];" + std::to_string(chosen) + ";";
+            writeData(cursesHelper, socket, msgToSend);
+
+            receivedMsg = readData(cursesHelper, socket);
+            endpoint = splitMessage(receivedMsg);
+
+            if (endpoint == "[GET_ROOM_SUCCESS]") {
+                auto room = new Room(receivedMsg, cursesHelper);
+                room->draw();
+                std::string roomId = room->id;
+                delete room;
+
+                cursesHelper->setContext(0);
+                switch (cursesHelper->handleSelection(roomOptions)) {
+                    case 0 : {
+                        chosen = (chosen - 1 + rooms) % rooms;
+                        return browseRooms(socket, chosen);
+                    }
+                    case 1 : {
+                        chosen = (chosen + 1 + rooms) % rooms;
+                        return browseRooms(socket, chosen);
+                    }
+                    case 2 : {
+                        shutdown(socket, SHUT_RDWR);
+                        close(socket);
+                        return joinRoom(roomId);
+                    }
+                    default: {
+                        shutdown(socket, SHUT_RDWR);
+                        close(socket);
+                        return selectGameType();
+                    }
+                }
+            } else {
+                shutdown(socket, SHUT_RDWR);
+                close(socket);
+                return backToMenu("Unhandled error: browseRooms");
+            }
+        } else {
+            shutdown(socket, SHUT_RDWR);
+            close(socket);
+            return backToMenu("There are no rooms. Host a game to get started");
+        }
     } else {
-        return selectGameType();
-    }
-}
-
-int joinRoom(std::string roomId) {
-
-    addrinfo *resolved, hints = {.ai_flags=0, .ai_family=AF_INET, .ai_socktype=SOCK_STREAM};
-    checkpoint(!getaddrinfo(address.c_str(), roomId.c_str(), &hints, &resolved) && resolved,
-               "Getting address info");
-
-    roomSocketDescriptor = socket(resolved->ai_family, resolved->ai_socktype, 0);
-    checkpoint(roomSocketDescriptor != -1,
-               "Creating socket");
-
-    int ret = connect(roomSocketDescriptor, resolved->ai_addr, resolved->ai_addrlen);
-    checkpoint(!ret,
-               "Connecting to a socket");
-
-    freeaddrinfo(resolved);
-
-    if (ret) {
-        cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
-        cursesHelper->setContext(0);
-        cursesHelper->printAtCenter("Room server is not responding, please try again later \n");
-        getch();
-        timeout(1000);
-        getch();
-        return selectGameType();
-    }
-
-    std::string message = "[JOIN_ROOM];" + roomId + ";";
-    writeData(cursesHelper, roomSocketDescriptor, message);
-
-    message = readData(cursesHelper, roomSocketDescriptor);
-    std::string delimiter = ";";
-    std::string endpoint = message.substr(0, message.find(delimiter));
-    message.erase(0, message.find(delimiter) + delimiter.length());
-
-    if (endpoint == "[JOIN_ROOM_SUCCESS]") {
-        return waitingForPlayers();
-    } else if (endpoint == "[ROOM_FULL]") {
-        close(roomSocketDescriptor);
-        return roomIsFull();
-    } else {
-        close(roomSocketDescriptor);
-        return selectGameType();
+        shutdown(socket, SHUT_RDWR);
+        close(socket);
+        return backToMenu("Unhandled error: browseRooms");
     };
-}
-
-int main() {
-
-    cursesHelper = new CursesHelper();
-
-    cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
-    cursesHelper->setContext(0);
-
-    std::ifstream file("../shared/config.txt");
-
-    std::string port;
-
-    if (file.is_open()) {
-        file >> address >> port;
-    }
-
-    addrinfo *resolved, hints = {.ai_flags=0, .ai_family=AF_INET, .ai_socktype=SOCK_STREAM};
-    checkpoint(!getaddrinfo(address.c_str(), port.c_str(), &hints, &resolved) && resolved,
-               "Getting address info");
-
-    socketDescriptor = socket(resolved->ai_family, resolved->ai_socktype, 0);
-    checkpoint(socketDescriptor != -1,
-               "Creating socket");
-
-    int ret = connect(socketDescriptor, resolved->ai_addr, resolved->ai_addrlen);
-    checkpoint(!ret,
-               "Connecting to a socket");
-
-    if (ret) {
-        cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
-        cursesHelper->setContext(0);
-        cursesHelper->printAtCenter("Server is not responding, please try again later \n");
-        getch();
-        timeout(1000);
-        getch();
-        ctrl_c(SIGINT);
-    }
-
-    freeaddrinfo(resolved);
-
-    signal(SIGINT, ctrl_c);
-
-    cursesHelper->print("Press any key to start \n");
-    getch();
-    timeout(1000);
-    getch();
-
-    selectGameType();
-
-    cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
-    cursesHelper->setContext(0);
-    cursesHelper->printAtCenter("Press any key to exit \n");
-    getch();
-    timeout(1000);
-    getch();
-    ctrl_c(SIGINT);
-}
-
-void checkpoint(bool condition, const std::string anchor) {
-
-    cursesHelper->print(anchor + (condition ? " successful\n" : " failed\n"));
-}
-
-void ctrl_c(int) {
-
-    checkpoint(true, "Closing client");
-    delete cursesHelper;
-    shutdown(socketDescriptor, SHUT_RDWR);
-    close(socketDescriptor);
-    exit(0);
 }
