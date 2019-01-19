@@ -242,7 +242,7 @@ void handleRoom(Room *room) {
     bool forceQuit = false;
 
     while (!forceQuit && running) {
-        int ready = poll(roomPollDescriptors, roomDescriptorCounter, 5000);
+        int ready = poll(roomPollDescriptors, roomDescriptorCounter, -1);
         if (ready == -1) {
             cursesHelper->checkpoint(false, "Creating poll for room number " + room->id);
             forceQuit = true;
@@ -305,6 +305,10 @@ void handleRoom(Room *room) {
                             if (endpoint == "[JOIN_ROOM]") {
                                 if (room->join(new Player(clientFd, "Gracz " + std::to_string(clientFd), 0, 0))) {
                                     writeData(cursesHelper, clientFd, "[JOIN_ROOM_SUCCESS];" + room->toString());
+
+                                    if (!room->running && room->isReady()) {
+                                        room->running = true;
+                                    }
                                 } else {
                                     writeData(cursesHelper, clientFd, "[ROOM_FULL];");
                                 }
@@ -314,6 +318,32 @@ void handleRoom(Room *room) {
                                 room->leave(clientFd);
                                 shutdown(clientFd, SHUT_RDWR);
                                 close(clientFd);
+                            } else if (endpoint == "[MOVE]") {
+                                std::string x = message.substr(0, message.find(delimiter));
+                                message.erase(0, message.find(delimiter) + delimiter.length());
+
+                                std::string y = message.substr(0, message.find(delimiter));
+                                message.erase(0, message.find(delimiter) + delimiter.length());
+
+                                for (auto player: room->players) {
+                                    writeData(cursesHelper, player->id,
+                                              std::string("[MOVE];") +
+                                              std::to_string(player->id) + ";"
+                                              + x + ";" + y + ";");
+                                }
+                            } else if (endpoint == "[SPAWN_BOMB]") {
+                                for (auto player: room->players) {
+                                    writeData(cursesHelper, player->id,
+                                              std::string("[SPAWN_BOMB];") +
+                                              std::to_string(player->id) + ";"
+                                              + "0" + ";");
+                                }
+                            } else if (endpoint == "[GET_STATUS]") {
+                                if (room->running) {
+                                    writeData(cursesHelper, clientFd, "[STATUS_RUNNING];" + room->toString());
+                                } else {
+                                    writeData(cursesHelper, clientFd, "[STATUS_WAITING];");
+                                }
                             }
                         }
                     }
@@ -329,13 +359,8 @@ void handleRoom(Room *room) {
                 ready--;
             }
         }
-        for (auto player: room->players) {
-            auto clientFd = player->id;
-            if (room->isReady() && !room->game->isRunning()) {
-                writeData(cursesHelper, clientFd, "[GAME_STARTS];" + room->toString());
-            } else {
-                writeData(cursesHelper, clientFd, "[PING];");
-            }
+        if (room->ended) {
+            running = false;
         }
     }
 

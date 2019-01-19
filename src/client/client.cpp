@@ -5,29 +5,34 @@
 #include "client.h"
 
 int waitingForPlayers() {
+
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
     cursesHelper->printAtCenter("Waiting for another players");
 
     while (true) {
-        std::string message = readData(cursesHelper, roomSocketDescriptor);
-        std::string delimiter = ";";
-        std::string endpoint = message.substr(0, message.find(delimiter));
-        message.erase(0, message.find(delimiter) + delimiter.length());
 
-        if (endpoint == "[GAME_STARTS]") {
-            auto room = new Room(message, cursesHelper);
-            return startGame(room);
-        } else if (endpoint == "[PING]"){
-            int keyVal = getch();
-            if (keyVal == 127) {
-                return selectGameType();
-            } else {
-                writeData(cursesHelper, roomSocketDescriptor, "[PING];");
-            }
-        } else {
+        int keyVal = getch();
+        if (keyVal == 127) {
             close(roomSocketDescriptor);
-            return roomServerFail();
+            return selectGameType();
+        } else {
+            writeData(cursesHelper, roomSocketDescriptor, "[GET_STATUS];");
+
+            std::string message = readData(cursesHelper, roomSocketDescriptor);
+            std::string delimiter = ";";
+            std::string endpoint = message.substr(0, message.find(delimiter));
+            message.erase(0, message.find(delimiter) + delimiter.length());
+
+            if (endpoint == "[STATUS_RUNNING]") {
+                auto room = new Room(message, cursesHelper);
+                return startGame(room);
+            } else if (endpoint == "[STATUS_WAITING]") {
+                continue;
+            } else {
+                close(roomSocketDescriptor);
+                return roomServerFail();
+            }
         }
     }
 }
@@ -211,10 +216,87 @@ int startGame(Room *room) {
 
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
-
     room->startGame();
 
+    int keyVal;
+
+    while (true) {
+        cursesHelper->clear();
+        room->board->draw();
+        keyVal = getch();
+
+        switch (keyVal) {
+            case 127: {
+                close(roomSocketDescriptor);
+                delete room;
+                return selectGameType();
+            }
+            case KEY_UP: {
+                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];0;-1;");
+            }
+            case KEY_DOWN: {
+                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];0;1;");
+            }
+            case KEY_LEFT: {
+                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];-1;0;");
+            }
+            case KEY_RIGHT: {
+                writeData(cursesHelper, roomSocketDescriptor, "[MOVE];1;0;");
+            }
+            case ' ': {
+                writeData(cursesHelper, roomSocketDescriptor, "[SPAWN_BOMB];");
+            }
+            default: {
+                std::string message = readData(cursesHelper, roomSocketDescriptor);
+
+                std::string delimiter = ";";
+                std::string endpoint = message.substr(0, message.find(delimiter));
+                message.erase(0, message.find(delimiter) + delimiter.length());
+
+                if (endpoint == "[TRIGGER]") {
+                    std::string trigger = message.substr(0, message.find(delimiter));
+                    message.erase(0, message.find(delimiter) + delimiter.length());
+
+                    room->board->handleTriggerables(std::stof(trigger));
+                    room->board->cleanExplosions();
+                    room->board->createExplosions();
+                } else if (endpoint == "[MOVE]") {
+                    std::string playerId = message.substr(0, message.find(delimiter));
+                    message.erase(0, message.find(delimiter) + delimiter.length());
+
+                    std::string x = message.substr(0, message.find(delimiter));
+                    message.erase(0, message.find(delimiter) + delimiter.length());
+
+                    std::string y = message.substr(0, message.find(delimiter));
+                    message.erase(0, message.find(delimiter) + delimiter.length());
+
+                    auto player = room->game->getPlayer(std::stoi(playerId));
+                    if (player != nullptr) {
+                        room->board->moveFragment(player, player->x + std::stoi(x), player->y + std::stoi(y));
+                    }
+                } else if (endpoint == "[SPAWN_BOMB]") {
+                    std::string playerId = message.substr(0, message.find(delimiter));
+                    message.erase(0, message.find(delimiter) + delimiter.length());
+
+                    std::string trigger = message.substr(0, message.find(delimiter));
+                    message.erase(0, message.find(delimiter) + delimiter.length());
+
+                    auto player = room->game->getPlayer(std::stoi(playerId));
+                    if (player != nullptr) {
+                        room->board->spawnBomb(new Bomb(player, std::stof(trigger)));
+                    }
+                }
+                break;
+            }
+        }
+
+        if (room->ended) {
+            break;
+        }
+    }
+
     delete room;
+    close(roomSocketDescriptor);
     return selectGameType();
 }
 
@@ -252,6 +334,8 @@ int joinRoom(std::string roomId) {
     int ret = connect(roomSocketDescriptor, resolved->ai_addr, resolved->ai_addrlen);
     checkpoint(!ret,
                "Connecting to a socket");
+
+    freeaddrinfo(resolved);
 
     if (ret) {
         cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});

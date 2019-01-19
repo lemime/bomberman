@@ -20,6 +20,10 @@ private:
     int slots;
 
 public:
+    int running = false;
+
+    int ended = false;
+
     Game *game;
 
     std::vector<Player *> players;

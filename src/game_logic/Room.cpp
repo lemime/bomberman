@@ -66,7 +66,6 @@ void Room::startGame() {
     for (Player *player: players) {
         game->spawnPlayer(player);
     }
-    game->start();
 }
 
 std::string Room::toString() {
@@ -93,6 +92,10 @@ void Room::leave(int playerId) {
         }
         return false;
     }), players.end());
+
+    if(players.size() <= 1) {
+        ended = true;
+    }
 }
 
 bool Room::isReady() {
