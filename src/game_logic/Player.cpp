@@ -16,7 +16,7 @@ bool Player::canPlaceBomb() {
     return maxBombs > placedBombs && isAlive();
 }
 
-bool Player::destroy(float currentTime) {
+bool Player::destroy(int currentTime) {
 
     lives--;
     symbol = " x ";

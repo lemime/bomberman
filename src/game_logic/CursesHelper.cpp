@@ -117,5 +117,13 @@ void CursesHelper::setContext(int window) {
 
 void CursesHelper::checkpoint(bool condition, const std::string &anchor) {
 
-    print(anchor + (condition ? " successful\n" : " failed\n"));
+//    print(anchor + (condition ? " successful\n" : " failed\n"));
+}
+
+void CursesHelper::setNonblock(bool condition) {
+    if (condition) {
+        timeout(50);
+    } else {
+        timeout(-1);
+    }
 }

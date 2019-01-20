@@ -19,7 +19,7 @@ bool writeData(CursesHelper *cursesHelper, int socketDescriptor, std::string mes
     char *buffer = new char[message.length() + 1];
     strcpy(buffer, message.c_str());
     auto ret = write(socketDescriptor, buffer, strlen(buffer));
-    cursesHelper->checkpoint(ret != -1, "Writing data to descriptor " + std::string(buffer));
+    cursesHelper->checkpoint(ret != -1, "Writing data to descriptor " + std::to_string(socketDescriptor) + " " + std::string(buffer));
     delete[] buffer;
     return ret != -1;
 }

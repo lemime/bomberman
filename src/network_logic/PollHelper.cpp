@@ -11,6 +11,12 @@ PollHelper::PollHelper(CursesHelper *cursesHelper, int serverDescriptor, int des
     addServer(serverDescriptor);
 }
 
+PollHelper::PollHelper(CursesHelper *cursesHelper, int descriptorsCapacity)
+        : cursesHelper(cursesHelper), descriptorsCapacity(descriptorsCapacity) {
+
+    descriptors = (pollfd *) malloc(sizeof(pollfd) * descriptorsCapacity);
+}
+
 void PollHelper::addSocket(int socket, short flags) {
 
     descriptorsSize++;
@@ -43,11 +49,13 @@ void PollHelper::addClient(int socket) {
 PollHelper::~PollHelper() {
 
     for (int i = 0; i < descriptorsSize; ++i) {
-        int kokos = descriptors[i].fd;
-        int kokos2 = 1;
-        shutdown(descriptors[i].fd, SHUT_RDWR);
-        close(descriptors[i].fd);
+        if (descriptors[i].fd != serverDescriptor) {
+            shutdown(descriptors[i].fd, SHUT_RDWR);
+            close(descriptors[i].fd);
+        }
     }
+    shutdown(serverDescriptor, SHUT_RDWR);
+    close(serverDescriptor);
 }
 
 std::string PollHelper::handleClientEvent(int descriptorIndex) {
@@ -55,36 +63,38 @@ std::string PollHelper::handleClientEvent(int descriptorIndex) {
     auto clientFd = descriptors[descriptorIndex].fd;
     auto revents = descriptors[descriptorIndex].revents;
 
+    if (revents & ~POLLIN) {
+        removeDescriptor(clientFd);
+        return "[SHUTDOWN_CLIENT];" + std::to_string(clientFd) + ";";
+    }
+
     if (revents & POLLIN) {
         std::string receivedMsg = readData(cursesHelper, clientFd);
         if (receivedMsg != "") {
-            std::string result = handleClientMessage(clientFd, receivedMsg);
-            return result;
+            return receivedMsg;
         } else {
             removeDescriptor(clientFd);
-            return "[SHUTDOWN_CLIENT];";
+            return "[SHUTDOWN_CLIENT];" + std::to_string(clientFd) + ";";
         }
     }
 
-    if (revents & ~POLLIN) {
-        removeDescriptor(clientFd);
-        return "[SHUTDOWN_CLIENT];";
-    } else {
-        return "[ERROR_UNKNOWN_REVENTS];";
-    }
+    return "[ERROR_UNKNOWN_REVENTS];" + std::to_string(clientFd) + ";";
 }
 
 std::string PollHelper::handleServerEvent(int descriptorIndex) {
 
     auto revents = descriptors[descriptorIndex].revents;
+    auto serverFd = descriptors[descriptorIndex].fd;
+
+    if (revents & ~POLLIN) {
+        return "[ERROR_SERVER_DOWN];" + std::to_string(serverFd) + ";";
+    }
 
     if (revents & POLLIN) {
         return handleNewClient();
-    } else if (revents & ~POLLIN) {
-        return "[ERROR_SERVER_DOWN];";
-    } else {
-        return "[ERROR_UNKNOWN_ENDPOINT];";
     }
+
+    return "[ERROR_UNKNOWN_REVENTS];" + std::to_string(serverFd) + ";";
 }
 
 std::string PollHelper::handleNewClient() {
@@ -92,8 +102,8 @@ std::string PollHelper::handleNewClient() {
     sockaddr_in clientAddr{};
     socklen_t clientAddrSize = sizeof(clientAddr);
 
-    auto clientFd = accept(serverDescriptor, (sockaddr * ) & clientAddr, &clientAddrSize);
-    cursesHelper->checkpoint(clientFd != -1, "Accepting new client");
+    auto clientFd = accept(serverDescriptor, (sockaddr *) &clientAddr, &clientAddrSize);
+    cursesHelper->checkpoint(clientFd != -1, "Accepting new client with fd:" + std::to_string(clientFd));
     if (clientFd != -1) {
         addClient(clientFd);
         cursesHelper->checkpoint(true, std::string("Setting up new connection with: ") +
@@ -101,42 +111,38 @@ std::string PollHelper::handleNewClient() {
                                        ":" +
                                        std::to_string(ntohs(clientAddr.sin_port)));
 
-        return "[ACCEPTING_CLIENT_SUCCESS];";
+        return "[ACCEPTING_CLIENT_SUCCESS];" + std::to_string(clientFd) + ";";
     } else {
-        return "[ERROR_ACCEPTING_CLIENT];";
+        return "[ERROR_ACCEPTING_CLIENT];" + std::to_string(clientFd) + ";";
     }
 }
 
 std::string PollHelper::handleEvents(int i) {
 
-    if (descriptors[i].revents) {
-        if (descriptors[i].fd == serverDescriptor) {
-            ready--;
-            std::string kokos = handleServerEvent(i);
-            return kokos;
-        } else {
-            ready--;
-            std::string kokos = handleClientEvent(i);
-            return kokos;
-        }
-    }
+    auto revents = descriptors[i].revents;
+    auto fd = descriptors[i].fd;
 
-    return "[NO_EVENTS];";
+    if (revents) {
+        ready--;
+        return descriptors[i].fd == serverDescriptor ? handleServerEvent(i) : handleClientEvent(i);
+    } else {
+        return "[NO_EVENTS];" + std::to_string(fd) + ";";
+    }
 }
 
 std::string PollHelper::refresh() {
 
     ready = poll(descriptors, descriptorsSize, -1);
     if (ready < 0) {
-        return "[ERROR_POLL_UNKNOWN];";
+        return "[ERROR_POLL_FAIL];";
     } else if (ready == 0) {
         return "[ERROR_POLL_TIMEOUT];";
     } else {
-        return "[POLL_SUCCESS];";
+        return "[POLL_SUCCESS];" + std::to_string(ready) + ";";
     }
 }
 
-int PollHelper::getDescriptorIndex(int socket){
+int PollHelper::getDescriptorIndex(int socket) {
 
     for (int i = 0; i < descriptorsSize; ++i) {
         if (socket == descriptors[i].fd) {
@@ -145,3 +151,4 @@ int PollHelper::getDescriptorIndex(int socket){
     }
     return -1;
 }
+

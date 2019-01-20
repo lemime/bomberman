@@ -11,11 +11,11 @@
 class Explosion : public BoardTileFragment, public Triggerable {
 
 public:
-    Explosion(int x, int y, float triggerTime);
+    Explosion(int x, int y, int triggerTime);
 
     ~Explosion() override = default;
 
-    bool destroy(float currentTime) override { return true; };
+    bool destroy(int currentTime) override { return true; };
 };
 
 #endif //BOMBERMAN_EXPLOSION_H

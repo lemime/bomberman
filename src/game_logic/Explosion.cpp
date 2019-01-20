@@ -4,5 +4,5 @@
 
 #include "Explosion.h"
 
-Explosion::Explosion(int x, int y, float triggerTime)
+Explosion::Explosion(int x, int y, int triggerTime)
         : BoardTileFragment(false, true, " # ", 1, x, y), Triggerable(triggerTime) {}

@@ -4,7 +4,7 @@
 
 #include "Triggerable.h"
 
-Triggerable::Triggerable(float triggerTime) : triggerTime(triggerTime) {}
+Triggerable::Triggerable(int triggerTime) : triggerTime(triggerTime) {}
 
 void Triggerable::trigger() {
     triggered = true;

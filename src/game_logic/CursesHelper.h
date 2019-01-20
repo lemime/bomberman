@@ -44,6 +44,8 @@ public:
     void setContext(int window);
 
     void checkpoint(bool condition, const std::string &anchor);
+
+    void setNonblock(bool value);
 };
 
 #endif //BOMBERMAN_CURSESHELPER_H

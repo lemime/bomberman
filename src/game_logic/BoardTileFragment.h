@@ -21,7 +21,7 @@ public:
 
     std::string symbol;
 
-    virtual bool destroy(float currentTime) = 0;
+    virtual bool destroy(int currentTime) = 0;
 
     virtual ~BoardTileFragment() = default;
 };

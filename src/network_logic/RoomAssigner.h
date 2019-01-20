@@ -14,16 +14,14 @@ class RoomAssigner : public PollHelper {
 private:
     CursesHelper *cursesHelper;
 
-    std::vector<Room *> rooms;
-
     short portRangeStart;
 
     short portRangeStop;
 
 public:
-    RoomAssigner(CursesHelper *cursesHelper, short portRangeStart, short portRangeStop, int serverDescriptor);
+    std::vector<Room *> rooms;
 
-    std::string handleClientMessage(int descriptor, std::string message) override;
+    RoomAssigner(CursesHelper *cursesHelper, short portRangeStart, short portRangeStop, int serverDescriptor);
 
     void removeDescriptor(int descriptor) override;
 

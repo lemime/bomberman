@@ -37,6 +37,8 @@ void cleanAndExit(int) {
 
 int selectGameType() {
 
+    forceQuit = false;
+
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
     cursesHelper->printAtCenter("Press any key to start \n");
@@ -135,10 +137,17 @@ int createRoom(int mapId) {
 
 int joinRoom(std::string port) {
 
-    int socket = connectToSocket(cursesHelper, serverAddress, port);
+    int socket = -1;
+
+    for (int i = 0; i < 5 && socket == -1; i++) {
+        socket = connectToSocket(cursesHelper, serverAddress, port);
+        timeout(1000);
+        getch();
+        timeout(-1);
+    }
 
     if (socket == -1) {
-        backToMenu("Room server is not responding, please try again later");
+        return backToMenu("Room server is not responding, please try again later");
     }
 
     std::string msgToSend = "[JOIN];" + port + ";";
@@ -164,9 +173,8 @@ int waitingForPlayers(int socket) {
     cursesHelper->printAtCenter("Waiting for another players to join");
 
     int keyVal;
-
+    cursesHelper->setNonblock(true);
     while (true) {
-
         keyVal = getch();
         if (keyVal == 127) {
             shutdown(socket, SHUT_RDWR);
@@ -181,10 +189,12 @@ int waitingForPlayers(int socket) {
 
             if (endpoint == "[STATUS_RUNNING]") {
                 auto room = new Room(receivedMsg, cursesHelper);
+                cursesHelper->setNonblock(false);
                 return startGame(socket, room);
             } else if (endpoint == "[STATUS_WAITING]") {
                 continue;
             } else {
+                cursesHelper->setNonblock(false);
                 shutdown(socket, SHUT_RDWR);
                 close(socket);
                 return backToMenu("Unhandled error: waitingForPlayers");
@@ -193,86 +203,151 @@ int waitingForPlayers(int socket) {
     }
 }
 
-int startGame(int socket, Room *room) {
-
-
-
-    cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
-    cursesHelper->setContext(0);
-    room->startGame();
+void keyboardListener(int fd, Room *room) {
 
     int keyVal;
 
-    while (true) {
+    while (!forceQuit) {
+        cursesMutex.lock();
+        cursesHelper->setNonblock(true);
+        cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
+        cursesHelper->setContext(0);
         cursesHelper->clear();
         room->board->draw();
         keyVal = getch();
 
         switch (keyVal) {
             case 127: {
-                shutdown(socket, SHUT_RDWR);
-                close(socket);
-                delete room;
-                return backToMenu("You have left the room");
+                std::string msgToSend = "[ALL_LEAVE_ROOM];";
+                writeData(cursesHelper, fd, msgToSend);
+                break;
             }
             case KEY_UP: {
-                std::string msgToSend = "[MOVE];0;-1;";
-                writeData(cursesHelper, socket, msgToSend);
+                std::string msgToSend = "[ALL_MOVE];0;-1;";
+                writeData(cursesHelper, fd, msgToSend);
+                break;
             }
             case KEY_DOWN: {
-                std::string msgToSend = "[MOVE];0;1;";
-                writeData(cursesHelper, socket, msgToSend);
+                std::string msgToSend = "[ALL_MOVE];0;1;";
+                writeData(cursesHelper, fd, msgToSend);
+                break;
             }
             case KEY_LEFT: {
-                std::string msgToSend = "[MOVE];-1;0;";
-                writeData(cursesHelper, socket, msgToSend);
+                std::string msgToSend = "[ALL_MOVE];-1;0;";
+                writeData(cursesHelper, fd, msgToSend);
+                break;
             }
             case KEY_RIGHT: {
-                std::string msgToSend = "[MOVE];1;0;";
-                writeData(cursesHelper, socket, msgToSend);
+                std::string msgToSend = "[ALL_MOVE];1;0;";
+                writeData(cursesHelper, fd, msgToSend);
+                break;
             }
             case ' ': {
-                std::string msgToSend = "[SPAWN_BOMB];";
-                writeData(cursesHelper, socket, msgToSend);
+                std::string msgToSend = "[ALL_SPAWN_BOMB];";
+                writeData(cursesHelper, fd, msgToSend);
+                break;
+            }
+            default: {
+                std::string msgToSend = "[GET_TIME];";
+                writeData(cursesHelper, fd, msgToSend);
+                break;
             }
         }
+        cursesMutex.unlock();
+    }
 
-        std::string receivedMsg = readData(cursesHelper, socket);
-        std::string endpoint = splitMessage(receivedMsg);
+    cursesHelper->setNonblock(false);
+}
 
-        if (endpoint == "[CURRENT_TIME]") {
-            std::string currentTime = splitMessage(receivedMsg);
-            room->board->handleTriggerables(std::stof(currentTime));
-            room->board->cleanExplosions();
-            room->board->createExplosions();
-        } else if (endpoint == "[MOVE]") {
-            int playerId = std::stoi(splitMessage(receivedMsg));
+int startGame(int socket, Room *room) {
 
-            int xOffset = std::stoi(splitMessage(receivedMsg));
+    auto clientHandler = new ClientHandler(cursesHelper, room);
+    clientHandler->addClient(socket);
 
-            int yOffset = std::stoi(splitMessage(receivedMsg));
+    int fd[2];
+    int result = pipe(fd);
+    if (result < 0) {
+        cursesHelper->checkpoint(false, "Pipe");
+    }
 
-            auto player = room->game->getPlayer(playerId);
-            if (player != nullptr) {
-                room->board->moveFragment(player, player->x + xOffset, player->y + yOffset);
-            }
-        } else if (endpoint == "[SPAWN_BOMB]") {
-            int playerId = std::stoi(splitMessage(receivedMsg));
+    clientHandler->addClient(fd[0]);
 
-            float trigger = std::stof(splitMessage(receivedMsg));
+    room->startGame();
 
-            auto player = room->game->getPlayer(playerId);
-            if (player != nullptr) {
-                room->board->spawnBomb(new Bomb(player, trigger));
+    int currentTime = 0;
+
+    std::thread listener(keyboardListener, fd[1], room);
+
+    while (!forceQuit) {
+        std::string message = clientHandler->refresh();
+        std::string endpoint = splitMessage(message);
+
+        if (endpoint == "[ERROR_POLL_FAIL]" || endpoint == "[ERROR_POLL_TIMEOUT]") {
+            cleanAndExit(SIGINT);
+        } else if (endpoint == "[POLL_SUCCESS]") {
+            for (int i = 0; i < clientHandler->descriptorsSize && clientHandler->ready > 0; ++i) {
+                message = clientHandler->handleEvents(i);
+                endpoint = splitMessage(message);
+
+                if (endpoint == "[TIME]") {
+                    currentTime = std::stoi(splitMessage(message));
+                    room->board->handleTriggerables(currentTime);
+                    room->board->cleanExplosions(currentTime);
+                    room->board->createExplosions(currentTime);
+                } else if (endpoint == "[MOVE]") {
+                    int playerId = std::stoi(splitMessage(message));
+
+                    int xOffset = std::stoi(splitMessage(message));
+
+                    int yOffset = std::stoi(splitMessage(message));
+
+                    auto player = room->game->getPlayer(playerId);
+                    if (player != nullptr) {
+                        room->board->moveFragment(player, player->x + xOffset, player->y + yOffset);
+                    }
+                } else if (endpoint == "[SPAWN_BOMB]") {
+                    int playerId = std::stoi(splitMessage(message));
+
+                    int triggerTime = std::stoi(splitMessage(message));
+
+                    auto player = room->game->getPlayer(playerId);
+                    if (player != nullptr) {
+                        room->board->spawnBomb(new Bomb(player, triggerTime));
+                    }
+                } else if (endpoint == "[ALL_LEAVE_ROOM]") {
+                    writeData(cursesHelper, socket, "[LEAVE_ROOM];");
+                } else if (endpoint == "[ALL_MOVE]") {
+                    writeData(cursesHelper, socket, "[MOVE];" + message);
+                } else if (endpoint == "[ALL_SPAWN_BOMB]") {
+                    writeData(cursesHelper, socket, "[SPAWN_BOMB];");
+                } else if (endpoint == "[GET_TIME]") {
+                    writeData(cursesHelper, socket, "[GET_TIME];");
+                } else if (endpoint == "[ACCEPTING_CLIENT_SUCCESS]") {
+                    cursesHelper->checkpoint(true, endpoint + ";" + message);
+                } else if (endpoint == "[SHUTDOWN_CLIENT]") {
+                    cursesHelper->checkpoint(true, endpoint + ";" + message);
+                } else if (endpoint == "[NO_EVENTS]") {
+
+                } else {
+                    cursesHelper->checkpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
+                    cleanAndExit(SIGINT);
+                }
             }
         }
 
         if (room->ended) {
-            break;
+            forceQuit = true;
         }
+
+        cursesMutex.unlock();
     }
 
-    delete room;
+    listener.join();
+
+    delete clientHandler;
+
+    cursesHelper->setNonblock(false);
+
     shutdown(socket, SHUT_RDWR);
     close(socket);
     return backToMenu("The game has ended");

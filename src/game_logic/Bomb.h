@@ -21,7 +21,7 @@ public:
 
     int explosionSize;
 
-    bool destroy(float currentTime) override;
+    bool destroy(int currentTime) override;
 };
 
 #endif //BOMBERMAN_BOMB_H

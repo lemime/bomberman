@@ -14,7 +14,7 @@ public:
 
     ~Powerup() override = default;
 
-    bool destroy(float currentTime) override { return true; };
+    bool destroy(int currentTime) override { return true; };
 };
 
 #endif //BOMBERMAN_POWERUP_H

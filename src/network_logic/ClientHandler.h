@@ -16,13 +16,11 @@ private:
     Room *room;
 
 public:
-    RoomHandler(CursesHelper *cursesHelper, Room *room, int serverDescriptor);
-
-    std::string handleClientMessage(int descriptor, std::string message) override;
+    ClientHandler(CursesHelper *cursesHelper, Room *room);
 
     void removeDescriptor(int descriptor) override;
 
-    ~RoomHandler() override;
+    ~ClientHandler() override;
 };
 
 #endif //BOMBERMAN_CLIENTHANDLER_H

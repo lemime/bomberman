@@ -34,7 +34,7 @@ public:
 
     bool isAlive();
 
-    bool destroy(float currentTime) override;
+    bool destroy(int currentTime) override;
 
     bool checkId(int id);
 };

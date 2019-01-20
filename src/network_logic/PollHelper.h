@@ -27,22 +27,22 @@ private:
 
 protected:
 
-    int serverDescriptor;
-
     void removeSocket(int descriptorIndex);
 
 public:
+    int serverDescriptor;
+
     pollfd *descriptors;
 
     PollHelper(CursesHelper *cursesHelper, int serverDescriptor, int descriptorsCapacity);
+
+    PollHelper(CursesHelper *cursesHelper, int descriptorsCapacity);
 
     virtual ~PollHelper();
 
     void addClient(int socket);
 
     std::string handleClientEvent(int descriptorIndex);
-
-    virtual std::string handleClientMessage(int descriptor, std::string message) = 0;
 
     virtual void removeDescriptor(int descriptor) = 0;
 

@@ -12,12 +12,19 @@
 #include <vector>
 #include <fstream>
 #include <ncurses.h>
+#include <thread>
+#include <mutex>
 
 #include "../network_logic/NetworkHelper.h"
+#include "../network_logic/ClientHandler.h"
 #include "../game_logic/CursesHelper.h"
 #include "../game_logic/Board.h"
 #include "../game_logic/Room.h"
 #include "../game_logic/Board.h"
+
+std::mutex cursesMutex;
+
+bool forceQuit;
 
 CursesHelper *cursesHelper;
 

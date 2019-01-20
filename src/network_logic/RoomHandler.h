@@ -21,8 +21,6 @@ private:
 public:
     RoomHandler(CursesHelper *cursesHelper, Room *room, int serverDescriptor);
 
-    std::string handleClientMessage(int descriptor, std::string message) override;
-
     void removeDescriptor(int descriptor) override;
 
     ~RoomHandler() override;

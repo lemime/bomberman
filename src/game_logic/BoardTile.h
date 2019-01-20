@@ -28,7 +28,7 @@ public:
 
     bool isPassable();
 
-    void destroy(float currentTime);
+    void destroy(int currentTime);
 };
 
 #endif //BOMBERMAN_BOARDTILE_H

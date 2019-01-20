@@ -12,7 +12,7 @@ public:
 
     bool triggered = false;
 
-    Triggerable(float triggerTime);
+    Triggerable(int triggerTime);
 
     void trigger();
 };

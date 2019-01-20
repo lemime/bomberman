@@ -78,13 +78,13 @@ public:
 
     int getSlotsSize();
 
-    void createExplosions();
+    void createExplosions(int currentTime);
 
-    void spreadExplosion(int x, int y, int x_offset, int y_offset, int explosionSize);
+    void spreadExplosion(int currentTime, int x, int y, int x_offset, int y_offset, int explosionSize);
 
-    void cleanExplosions();
+    void cleanExplosions(int currentTime);
 
-    void handleTriggerables(float currentTime);
+    void handleTriggerables(int currentTime);
 };
 
 #endif //BOMBERMAN_BOARD_H
