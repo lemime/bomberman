@@ -19,6 +19,8 @@ std::string readData(CursesHelper *cursesHelper, int socketDescriptor);
 
 int connectToSocket(CursesHelper *cursesHelper, const std::string &address, const std::string &port);
 
+int setupServerSocket(CursesHelper *cursesHelper, short port);
+
 std::string splitMessage(std::string &message);
 
 #endif //BOMBERMAN_NETWORKHELPER_H

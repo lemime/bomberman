@@ -10,7 +10,7 @@ std::string readData(CursesHelper *cursesHelper, int socketDescriptor) {
 
     char buffer[255] = "";
     auto ret = read(socketDescriptor, buffer, 255);
-    cursesHelper->checkpoint(ret > 0, "Reading data from descriptor " + std::string(buffer));
+    cursesHelper->checkpoint(ret > 0, "Reading data from descriptor " + std::to_string(socketDescriptor) + " " + std::string(buffer));
     return ret > 0 ? std::string(buffer) : "";
 }
 
@@ -49,4 +49,24 @@ std::string splitMessage(std::string &message) {
     message.erase(0, message.find(delimiter) + delimiter.length());
 
     return endpoint;
+}
+
+int setupServerSocket(CursesHelper *cursesHelper, short port) {
+
+    int socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    cursesHelper->checkpoint(socketDescriptor != -1,
+                             "Creating server socket");
+
+    const int one = 1;
+    cursesHelper->checkpoint(!setsockopt(socketDescriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)),
+                             "Setting reusable address");
+
+    sockaddr_in serverAddress{.sin_family=AF_INET, .sin_port=htons(port), .sin_addr={INADDR_ANY}};
+    cursesHelper->checkpoint(!bind(socketDescriptor, (sockaddr *) &serverAddress, sizeof(serverAddress)),
+                             "Binding server address");
+
+    cursesHelper->checkpoint(!listen(socketDescriptor, 1),
+                             "Listening for connections");
+
+    return socketDescriptor;
 }

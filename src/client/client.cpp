@@ -14,14 +14,13 @@ int main() {
 
     if (file.is_open()) {
         file >> serverAddress >> roomHandlerServerPort;
+        selectGameType();
     } else {
         cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
         cursesHelper->setContext(0);
         cursesHelper->printAtCenter("Error reading configuration file\n");
+        getch();
     }
-
-    selectGameType();
-
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
     cursesHelper->printAtCenter("Press any key to exit \n");
@@ -129,7 +128,8 @@ int createRoom(int mapId) {
         std::string port = splitMessage(receivedMsg);
         return joinRoom(port);
     } else {
-        return backToMenu(endpoint == "[SERVER_FULL]" ? "Server is currently full" : "Unhandled error: createRoom");
+        return backToMenu(
+                endpoint == "[ERROR_SERVER_FULL]" ? "Server is currently full" : "Unhandled error: createRoom");
     }
 }
 
@@ -152,7 +152,8 @@ int joinRoom(std::string port) {
     } else {
         shutdown(socket, SHUT_RDWR);
         close(socket);
-        return backToMenu(endpoint == "[ROOM_FULL]" ? "Sorry. Room is already full" : "Unhandled error: joinRoom");
+        return backToMenu(
+                endpoint == "[ERROR_ROOM_FULL]" ? "Sorry. Room is already full" : "Unhandled error: joinRoom");
     }
 }
 
@@ -166,7 +167,7 @@ int waitingForPlayers(int socket) {
 
     while (true) {
 
-        getch();
+        keyVal = getch();
         if (keyVal == 127) {
             shutdown(socket, SHUT_RDWR);
             close(socket);
@@ -194,6 +195,8 @@ int waitingForPlayers(int socket) {
 
 int startGame(int socket, Room *room) {
 
+
+
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
     room->startGame();
@@ -203,7 +206,7 @@ int startGame(int socket, Room *room) {
     while (true) {
         cursesHelper->clear();
         room->board->draw();
-        getch();
+        keyVal = getch();
 
         switch (keyVal) {
             case 127: {
@@ -302,13 +305,13 @@ int browseRooms(int socket, int chosen) {
         int rooms = std::stoi(receivedMsg);
 
         if (rooms > 0) {
-            msgToSend = "[GET_ROOM];" + std::to_string(chosen) + ";";
+            msgToSend = "[GET_ROOM_AT];" + std::to_string(chosen) + ";";
             writeData(cursesHelper, socket, msgToSend);
 
             receivedMsg = readData(cursesHelper, socket);
             endpoint = splitMessage(receivedMsg);
 
-            if (endpoint == "[GET_ROOM_SUCCESS]") {
+            if (endpoint == "[GET_ROOM_AT_SUCCESS]") {
                 auto room = new Room(receivedMsg, cursesHelper);
                 room->draw();
                 std::string roomId = room->id;
@@ -335,6 +338,8 @@ int browseRooms(int socket, int chosen) {
                         return selectGameType();
                     }
                 }
+            } else if (endpoint == "[ERROR_ROOM_NOT_FOUND]") {
+                return backToMenu("This room doesn't exist anymore");
             } else {
                 shutdown(socket, SHUT_RDWR);
                 close(socket);

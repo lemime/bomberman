@@ -19,9 +19,10 @@ class Room {
 private:
     CursesHelper *cursesHelper;
 
-    int slots;
 
 public:
+    int slots;
+
     int running = false;
 
     int ended = false;
