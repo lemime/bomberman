@@ -124,7 +124,8 @@ void handleRoom(NetworkRoom *room) {
 
     while (!forceQuit && running) {
 
-        auto elapsedTime = std::chrono::system_clock::now() - startTime;
+        auto elapsedTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now() - startTime).count();
 
         std::string message = roomHandler->refresh();
         std::string endpoint = splitMessage(message);
@@ -164,13 +165,13 @@ void handleRoom(NetworkRoom *room) {
                     for (auto player: room->players) {
                         writeData(logger, player->descriptor,
                                   std::string("[SPAWN_BOMB];") + std::to_string(descriptor)
-                                  + ";" + std::to_string(elapsedTime.count() + 5000000) + ";");
+                                  + ";" + std::to_string(elapsedTimeMs + 2000) + ";");
                     }
                 } else if (endpoint == "[GET_STATUS]") {
                     writeData(logger, descriptor,
                               room->isReady() ? "[STATUS_RUNNING];" + room->toString() : "[STATUS_WAITING];");
                 } else if (endpoint == "[GET_TIME]") {
-                    writeData(logger, descriptor, "[TIME];" + std::to_string(elapsedTime.count()) + ";");
+                    writeData(logger, descriptor, "[TIME];" + std::to_string(elapsedTimeMs) + ";");
                 } else if (endpoint == "[SHUTDOWN_CLIENT]") {
                     logger->logCheckpoint(true, endpoint + ";" + message + " on port " + std::to_string(room->port));
                     room->leave(descriptor);

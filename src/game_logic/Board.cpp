@@ -162,7 +162,7 @@ void Board::spreadExplosion(int currentTime, int x, int y, int x_offset, int y_o
     if (explosionSize > 0 && x + x_offset >= 0 && x + x_offset < xSize && y + y_offset >= 0 && y + y_offset < ySize) {
         BoardTile *tile = tiles[y + y_offset][x + x_offset];
         if (tile->isPassable() || tile->isDestructible()) {
-            spawnExplosion(new Explosion(x + x_offset, y + y_offset, currentTime + 2000000));
+            spawnExplosion(new Explosion(x + x_offset, y + y_offset, currentTime + 1000));
         }
 
         if (tile->isPassable()) {
