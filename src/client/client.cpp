@@ -4,9 +4,10 @@
 
 #include "client.h"
 
-int main() {
+int main(int argc, char* argv[]) {
 
     cursesHelper = new CursesHelper();
+    fileLogger = new FileLogger(std::string("client-bomberman") + argv[1] + ".log");
 
     signal(SIGINT, cleanAndExit);
 
@@ -19,6 +20,7 @@ int main() {
         cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
         cursesHelper->setContext(0);
         cursesHelper->printAtCenter("Error reading configuration file\n");
+        fileLogger->log("Error reading configuration file\n");
         getch();
     }
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
@@ -30,8 +32,9 @@ int main() {
 
 void cleanAndExit(int) {
 
-    cursesHelper->checkpoint(true, "Closing client");
+    fileLogger->logCheckpoint(true, "Closing client");
     delete cursesHelper;
+    delete fileLogger;
     exit(0);
 }
 
@@ -44,7 +47,7 @@ int selectGameType() {
     cursesHelper->printAtCenter("Press any key to start \n");
     getch();
 
-    int socket = connectToSocket(cursesHelper, serverAddress, roomHandlerServerPort);
+    int socket = connectToSocket(fileLogger, serverAddress, roomHandlerServerPort);
 
     if (socket == -1) {
         cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
@@ -115,12 +118,12 @@ int selectMap(int chosen) {
 
 int createRoom(int mapId) {
 
-    int socket = connectToSocket(cursesHelper, serverAddress, roomHandlerServerPort);
+    int socket = connectToSocket(fileLogger, serverAddress, roomHandlerServerPort);
 
     std::string msgToSend = "[CREATE_ROOM];" + std::to_string(mapId) + ";";
-    writeData(cursesHelper, socket, msgToSend);
+    writeData(fileLogger, socket, msgToSend);
 
-    std::string receivedMsg = readData(cursesHelper, socket);
+    std::string receivedMsg = readData(fileLogger, socket);
     std::string endpoint = splitMessage(receivedMsg);
 
     shutdown(socket, SHUT_RDWR);
@@ -140,7 +143,7 @@ int joinRoom(std::string port) {
     int socket = -1;
 
     for (int i = 0; i < 5 && socket == -1; i++) {
-        socket = connectToSocket(cursesHelper, serverAddress, port);
+        socket = connectToSocket(fileLogger, serverAddress, port);
         timeout(1000);
         getch();
         timeout(-1);
@@ -151,9 +154,9 @@ int joinRoom(std::string port) {
     }
 
     std::string msgToSend = "[JOIN];" + port + ";";
-    writeData(cursesHelper, socket, msgToSend);
+    writeData(fileLogger, socket, msgToSend);
 
-    std::string receivedMsg = readData(cursesHelper, socket);
+    std::string receivedMsg = readData(fileLogger, socket);
     std::string endpoint = splitMessage(receivedMsg);
 
     if (endpoint == "[JOIN_SUCCESS]") {
@@ -182,13 +185,14 @@ int waitingForPlayers(int socket) {
             return backToMenu("You have left the room");
         } else {
             std::string msgToSend = "[GET_STATUS];";
-            writeData(cursesHelper, socket, msgToSend);
+            writeData(fileLogger, socket, msgToSend);
 
-            std::string receivedMsg = readData(cursesHelper, socket);
+            std::string receivedMsg = readData(fileLogger, socket);
             std::string endpoint = splitMessage(receivedMsg);
 
             if (endpoint == "[STATUS_RUNNING]") {
-                auto room = new Room(receivedMsg, cursesHelper);
+                std::string roomId = splitMessage(receivedMsg);
+                auto room = new GameRoom(receivedMsg, cursesHelper);
                 cursesHelper->setNonblock(false);
                 return startGame(socket, room);
             } else if (endpoint == "[STATUS_WAITING]") {
@@ -203,12 +207,11 @@ int waitingForPlayers(int socket) {
     }
 }
 
-void keyboardListener(int fd, Room *room) {
+void keyboardListener(int fd, GameRoom *room) {
 
     int keyVal;
 
     while (!forceQuit) {
-        cursesMutex.lock();
         cursesHelper->setNonblock(true);
         cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
         cursesHelper->setContext(0);
@@ -219,60 +222,73 @@ void keyboardListener(int fd, Room *room) {
         switch (keyVal) {
             case 127: {
                 std::string msgToSend = "[ALL_LEAVE_ROOM];";
-                writeData(cursesHelper, fd, msgToSend);
+                listenerMutex.lock();
+                writeData(fileLogger, fd, msgToSend);
+                listenerMutex.unlock();
                 break;
             }
             case KEY_UP: {
                 std::string msgToSend = "[ALL_MOVE];0;-1;";
-                writeData(cursesHelper, fd, msgToSend);
+                listenerMutex.lock();
+                writeData(fileLogger, fd, msgToSend);
+                listenerMutex.unlock();
                 break;
             }
             case KEY_DOWN: {
                 std::string msgToSend = "[ALL_MOVE];0;1;";
-                writeData(cursesHelper, fd, msgToSend);
+                listenerMutex.lock();
+                writeData(fileLogger, fd, msgToSend);
+                listenerMutex.unlock();
                 break;
             }
             case KEY_LEFT: {
                 std::string msgToSend = "[ALL_MOVE];-1;0;";
-                writeData(cursesHelper, fd, msgToSend);
+                listenerMutex.lock();
+                writeData(fileLogger, fd, msgToSend);
+                listenerMutex.unlock();
                 break;
             }
             case KEY_RIGHT: {
                 std::string msgToSend = "[ALL_MOVE];1;0;";
-                writeData(cursesHelper, fd, msgToSend);
+                listenerMutex.lock();
+                writeData(fileLogger, fd, msgToSend);
+                listenerMutex.unlock();
                 break;
             }
             case ' ': {
                 std::string msgToSend = "[ALL_SPAWN_BOMB];";
-                writeData(cursesHelper, fd, msgToSend);
+                listenerMutex.lock();
+                writeData(fileLogger, fd, msgToSend);
+                listenerMutex.unlock();
                 break;
             }
             default: {
                 std::string msgToSend = "[GET_TIME];";
-                writeData(cursesHelper, fd, msgToSend);
+                listenerMutex.lock();
+                writeData(fileLogger, fd, msgToSend);
+                listenerMutex.unlock();
                 break;
             }
         }
-        cursesMutex.unlock();
     }
 
     cursesHelper->setNonblock(false);
 }
 
-int startGame(int socket, Room *room) {
+int startGame(int socket, GameRoom *room) {
 
-    auto clientHandler = new ClientHandler(cursesHelper, room);
+    auto clientHandler = new ClientHandler(fileLogger, room);
     clientHandler->addClient(socket);
 
     int fd[2];
     int result = pipe(fd);
     if (result < 0) {
-        cursesHelper->checkpoint(false, "Pipe");
+        fileLogger->logCheckpoint(false, "Pipe");
     }
 
     clientHandler->addClient(fd[0]);
 
-    room->startGame();
+    room->spawnPlayers();
 
     int currentTime = 0;
 
@@ -280,13 +296,16 @@ int startGame(int socket, Room *room) {
 
     while (!forceQuit) {
         std::string message = clientHandler->refresh();
+
         std::string endpoint = splitMessage(message);
 
         if (endpoint == "[ERROR_POLL_FAIL]" || endpoint == "[ERROR_POLL_TIMEOUT]") {
             cleanAndExit(SIGINT);
         } else if (endpoint == "[POLL_SUCCESS]") {
             for (int i = 0; i < clientHandler->descriptorsSize && clientHandler->ready > 0; ++i) {
+                listenerMutex.lock();
                 message = clientHandler->handleEvents(i);
+                listenerMutex.unlock();
                 endpoint = splitMessage(message);
 
                 if (endpoint == "[TIME]") {
@@ -301,7 +320,7 @@ int startGame(int socket, Room *room) {
 
                     int yOffset = std::stoi(splitMessage(message));
 
-                    auto player = room->game->getPlayer(playerId);
+                    auto player = room->getPlayer(playerId);
                     if (player != nullptr) {
                         room->board->moveFragment(player, player->x + xOffset, player->y + yOffset);
                     }
@@ -310,36 +329,42 @@ int startGame(int socket, Room *room) {
 
                     int triggerTime = std::stoi(splitMessage(message));
 
-                    auto player = room->game->getPlayer(playerId);
+                    auto player = room->getPlayer(playerId);
                     if (player != nullptr) {
                         room->board->spawnBomb(new Bomb(player, triggerTime));
                     }
                 } else if (endpoint == "[ALL_LEAVE_ROOM]") {
-                    writeData(cursesHelper, socket, "[LEAVE_ROOM];");
+                    listenerMutex.lock();
+                    writeData(fileLogger, socket, "[LEAVE_ROOM];");
+                    listenerMutex.unlock();
                 } else if (endpoint == "[ALL_MOVE]") {
-                    writeData(cursesHelper, socket, "[MOVE];" + message);
+                    listenerMutex.lock();
+                    writeData(fileLogger, socket, "[MOVE];" + message);
+                    listenerMutex.unlock();
                 } else if (endpoint == "[ALL_SPAWN_BOMB]") {
-                    writeData(cursesHelper, socket, "[SPAWN_BOMB];");
+                    listenerMutex.lock();
+                    writeData(fileLogger, socket, "[SPAWN_BOMB];");
+                    listenerMutex.unlock();
                 } else if (endpoint == "[GET_TIME]") {
-                    writeData(cursesHelper, socket, "[GET_TIME];");
+                    listenerMutex.lock();
+                    writeData(fileLogger, socket, "[GET_TIME];");
+                    listenerMutex.unlock();
                 } else if (endpoint == "[ACCEPTING_CLIENT_SUCCESS]") {
-                    cursesHelper->checkpoint(true, endpoint + ";" + message);
+                    fileLogger->checkpoint(true, endpoint + ";" + message);
                 } else if (endpoint == "[SHUTDOWN_CLIENT]") {
-                    cursesHelper->checkpoint(true, endpoint + ";" + message);
+                    fileLogger->checkpoint(true, endpoint + ";" + message);
                 } else if (endpoint == "[NO_EVENTS]") {
 
                 } else {
-                    cursesHelper->checkpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
+                    fileLogger->checkpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
                     cleanAndExit(SIGINT);
                 }
             }
         }
 
-        if (room->ended) {
+        if (room->hasEnded()) {
             forceQuit = true;
         }
-
-        cursesMutex.unlock();
     }
 
     listener.join();
@@ -371,9 +396,9 @@ int browseRooms(int socket, int chosen) {
     cursesHelper->setContext(1);
 
     std::string msgToSend = "[GET_ROOMS_COUNT];";
-    writeData(cursesHelper, socket, msgToSend);
+    writeData(fileLogger, socket, msgToSend);
 
-    std::string receivedMsg = readData(cursesHelper, socket);
+    std::string receivedMsg = readData(fileLogger, socket);
     std::string endpoint = splitMessage(receivedMsg);
 
     if (endpoint == "[GET_ROOMS_COUNT_SUCCESS]") {
@@ -381,15 +406,15 @@ int browseRooms(int socket, int chosen) {
 
         if (rooms > 0) {
             msgToSend = "[GET_ROOM_AT];" + std::to_string(chosen) + ";";
-            writeData(cursesHelper, socket, msgToSend);
+            writeData(fileLogger, socket, msgToSend);
 
-            receivedMsg = readData(cursesHelper, socket);
+            receivedMsg = readData(fileLogger, socket);
             endpoint = splitMessage(receivedMsg);
 
             if (endpoint == "[GET_ROOM_AT_SUCCESS]") {
-                auto room = new Room(receivedMsg, cursesHelper);
+                std::string roomId = splitMessage(receivedMsg);
+                auto room = new GameRoom(receivedMsg, cursesHelper);
                 room->draw();
-                std::string roomId = room->id;
                 delete room;
 
                 cursesHelper->setContext(0);

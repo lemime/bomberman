@@ -11,9 +11,9 @@
 #include <mutex>
 
 #include "WindowHelper.h"
+#include "../utility/Logger.h"
 
-
-class CursesHelper {
+class CursesHelper : public Logger {
 
 private:
     std::mutex mutex;
@@ -25,7 +25,7 @@ public:
 
     CursesHelper();
 
-    ~CursesHelper();
+    ~CursesHelper() override;
 
     int handleSelection(std::vector<std::string> options);
 
@@ -43,7 +43,7 @@ public:
 
     void setContext(int window);
 
-    void checkpoint(bool condition, const std::string &anchor);
+    void log(const std::string &message) override;
 
     void setNonblock(bool value);
 };

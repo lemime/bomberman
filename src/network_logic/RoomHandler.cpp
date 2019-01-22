@@ -4,13 +4,8 @@
 
 #include "RoomHandler.h"
 
-RoomHandler::RoomHandler(CursesHelper *cursesHelper, Room *room, int serverDescriptor)
-        : cursesHelper(cursesHelper), room(room), PollHelper(cursesHelper, serverDescriptor, room->slots + 1) {}
-
-RoomHandler::~RoomHandler() {
-
-    delete room;
-}
+RoomHandler::RoomHandler(Logger *logger, NetworkRoom *room, int serverDescriptor)
+        : logger(logger), room(room), PollHelper(logger, serverDescriptor, room->slots + 1) {}
 
 void RoomHandler::removeDescriptor(int descriptor) {
 

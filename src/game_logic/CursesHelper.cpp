@@ -115,9 +115,9 @@ void CursesHelper::setContext(int window) {
     currentWindow = windowHelper->getWindowAt(window);
 }
 
-void CursesHelper::checkpoint(bool condition, const std::string &anchor) {
+void CursesHelper::log(const std::string &message) {
+    print(message);
 
-//    print(anchor + (condition ? " successful\n" : " failed\n"));
 }
 
 void CursesHelper::setNonblock(bool condition) {

@@ -8,22 +8,19 @@
 #include <string>
 
 #include "PollHelper.h"
-#include "../game_logic/CursesHelper.h"
-#include "../game_logic/Room.h"
+#include "../network_logic/NetworkRoom.h"
 
 class RoomHandler : public PollHelper {
 
 private:
-    CursesHelper *cursesHelper;
+    Logger *logger;
 
-    Room *room;
+    NetworkRoom *room;
 
 public:
-    RoomHandler(CursesHelper *cursesHelper, Room *room, int serverDescriptor);
+    RoomHandler(Logger *logger, NetworkRoom *room, int serverDescriptor);
 
     void removeDescriptor(int descriptor) override;
-
-    ~RoomHandler() override;
 };
 
 #endif //BOMBERMAN_ROOMHANDLER_H

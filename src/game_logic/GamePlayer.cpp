@@ -2,33 +2,29 @@
 // Created by Kamila Kolenda on 2019-01-02.
 //
 
-#include "Player.h"
+#include "GamePlayer.h"
 
-Player::Player(int id, std::string name, int x, int y)
+GamePlayer::GamePlayer(int id, std::string name, int x, int y)
         : id(id), name(std::move(name)), BoardTileFragment(true, false, " " + std::to_string(id) + " ", 2, x, y) {
 
-    explosionSize = 10;
-    maxBombs = 5;
+    explosionSize = 1;
+    maxBombs = 1;
 }
 
-bool Player::canPlaceBomb() {
+bool GamePlayer::canPlaceBomb() {
 
     return maxBombs > placedBombs && isAlive();
 }
 
-bool Player::destroy(int currentTime) {
+bool GamePlayer::destroy(int currentTime) {
 
     lives--;
     symbol = " x ";
+    isPassable = true;
     return false;
 }
 
-bool Player::isAlive() {
+bool GamePlayer::isAlive() {
 
     return lives > 0;
-}
-
-bool Player::checkId(int _id) {
-
-    return _id == id;
 }

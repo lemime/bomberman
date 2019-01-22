@@ -4,7 +4,7 @@
 
 #include "Bomb.h"
 
-Bomb::Bomb(Player *player, float triggerTime)
+Bomb::Bomb(GamePlayer *player, float triggerTime)
         : player(player), explosionSize(player->explosionSize),
           BoardTileFragment(true, false, " d ", 3, player->x, player->y), Triggerable(triggerTime) {
     player->placedBombs++;

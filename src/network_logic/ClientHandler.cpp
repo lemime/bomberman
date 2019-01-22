@@ -4,8 +4,8 @@
 
 #include "ClientHandler.h"
 
-ClientHandler::ClientHandler(CursesHelper *cursesHelper, Room *room)
-        : cursesHelper(cursesHelper), room(room), PollHelper(cursesHelper, 2) {}
+ClientHandler::ClientHandler(Logger *logger, GameRoom *room)
+        : room(room), PollHelper(logger, 2) {}
 
 ClientHandler::~ClientHandler() {
 
@@ -18,7 +18,6 @@ void ClientHandler::removeDescriptor(int descriptor) {
     if (i != -1) {
         descriptors[i] = descriptors[i - 1];
         descriptorsSize--;
-        room->leave(descriptor);
         shutdown(descriptor, SHUT_RDWR);
         close(descriptor);
     }

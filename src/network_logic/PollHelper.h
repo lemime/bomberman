@@ -12,12 +12,12 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#include "../game_logic/CursesHelper.h"
+#include "../utility/Logger.h"
 #include "NetworkHelper.h"
 
 class PollHelper {
 private:
-    CursesHelper *cursesHelper;
+    Logger *logger;
 
     int descriptorsCapacity = 4;
 
@@ -34,9 +34,9 @@ public:
 
     pollfd *descriptors;
 
-    PollHelper(CursesHelper *cursesHelper, int serverDescriptor, int descriptorsCapacity);
+    PollHelper(Logger *logger, int serverDescriptor, int descriptorsCapacity);
 
-    PollHelper(CursesHelper *cursesHelper, int descriptorsCapacity);
+    PollHelper(Logger *logger, int descriptorsCapacity);
 
     virtual ~PollHelper();
 

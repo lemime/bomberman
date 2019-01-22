@@ -9,18 +9,14 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "../game_logic/CursesHelper.h"
+#include "../utility/Logger.h"
 
-extern const std::string delimiter;
+bool writeData(Logger *logger, int socketDescriptor, std::string message);
 
-bool writeData(CursesHelper *cursesHelper, int socketDescriptor, std::string message);
+std::string readData(Logger *logger, int socketDescriptor);
 
-std::string readData(CursesHelper *cursesHelper, int socketDescriptor);
+int connectToSocket(Logger *logger, const std::string &address, const std::string &port);
 
-int connectToSocket(CursesHelper *cursesHelper, const std::string &address, const std::string &port);
-
-int setupServerSocket(CursesHelper *cursesHelper, short port);
-
-std::string splitMessage(std::string &message);
+int setupServerSocket(Logger *logger, short port);
 
 #endif //BOMBERMAN_NETWORKHELPER_H

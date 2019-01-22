@@ -8,26 +8,30 @@
 #include "NetworkHelper.h"
 #include "PollHelper.h"
 #include "../game_logic/CursesHelper.h"
-#include "../game_logic/Room.h"
+#include "NetworkRoom.h"
 
 class RoomAssigner : public PollHelper {
 private:
-    CursesHelper *cursesHelper;
+    Logger *logger;
 
     short portRangeStart;
 
     short portRangeStop;
 
-public:
-    std::vector<Room *> rooms;
+    short getFreePort();
 
-    RoomAssigner(CursesHelper *cursesHelper, short portRangeStart, short portRangeStop, int serverDescriptor);
+public:
+    std::vector<NetworkRoom *> rooms;
+
+    RoomAssigner(Logger *logger, short portRangeStart, short portRangeStop, int serverDescriptor);
 
     void removeDescriptor(int descriptor) override;
 
-    int getFreePort();
+    NetworkRoom *getRoomByPort(short port);
 
-    Room *getRoomById(std::string id);
+    void removeRoom(NetworkRoom *room);
+
+    NetworkRoom *createRoom(int mapid);
 };
 
 #endif //BOMBERMAN_ROOMASSIGNER_H

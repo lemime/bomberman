@@ -6,12 +6,10 @@
 #define BOMBERMAN_PLAYER_H
 
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "BoardTileFragment.h"
 
-class Player : public BoardTileFragment {
+class GamePlayer : public BoardTileFragment {
 
 public:
     int id;
@@ -26,17 +24,15 @@ public:
 
     int lives = 1;
 
-    Player(int id, std::string name, int x, int y);
+    GamePlayer(int id, std::string name, int x, int y);
 
-    ~Player() override = default;
+    ~GamePlayer() override = default;
 
     bool canPlaceBomb();
 
     bool isAlive();
 
     bool destroy(int currentTime) override;
-
-    bool checkId(int id);
 };
 
 #endif //BOMBERMAN_PLAYER_H

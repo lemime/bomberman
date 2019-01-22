@@ -6,17 +6,15 @@
 #define BOMBERMAN_CLIENTHANDLER_H
 
 #include "PollHelper.h"
-#include "../game_logic/Room.h"
+#include "../game_logic/GameRoom.h"
 
 class ClientHandler : public PollHelper {
 
 private:
-    CursesHelper *cursesHelper;
-
-    Room *room;
+    GameRoom *room;
 
 public:
-    ClientHandler(CursesHelper *cursesHelper, Room *room);
+    ClientHandler(Logger *logger, GameRoom *room);
 
     void removeDescriptor(int descriptor) override;
 

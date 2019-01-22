@@ -16,7 +16,7 @@
 #include "Crate.h"
 #include "CursesHelper.h"
 #include "Explosion.h"
-#include "Player.h"
+#include "GamePlayer.h"
 #include "Slot.h"
 #include "Wall.h"
 
@@ -49,7 +49,7 @@ private:
 
     std::vector<Triggerable *> triggerables;
 
-    std::vector<Player *> players;
+    std::vector<GamePlayer *> players;
 
     std::string getDefaultSize();
 
@@ -70,7 +70,7 @@ public:
 
     void removeFragment(BoardTileFragment *fragment);
 
-    void spawnPlayer(Player *player);
+    void spawnPlayer(GamePlayer *player);
 
     void spawnBomb(Bomb *bomb);
 

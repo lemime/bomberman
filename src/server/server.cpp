@@ -3,15 +3,12 @@
 //
 
 #include "server.h"
-#include "../network_logic/RoomHandler.h"
 
 int main(int argc, char **argv) {
 
     running = true;
 
-    cursesHelper = new CursesHelper();
-    cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
-    cursesHelper->setContext(0);
+    logger = new FileLogger("bomberman-server-log.txt");
 
     signal(SIGINT, cleanAndExit);
     signal(SIGPIPE, SIG_IGN);
@@ -19,68 +16,81 @@ int main(int argc, char **argv) {
     std::ifstream file("../shared/config.txt");
 
     std::string address;
-    short portRangeStart;
-    short portRangeStop;
+    short portRangeStart = 1234;
+    short portRangeStop = 1234;
 
     if (file.is_open()) {
         file >> address >> portRangeStart >> portRangeStop;
-        cursesHelper->checkpoint(true, "Reading configuration " + address + ", " +
-                                       "Port range: " + std::to_string(portRangeStart) + "-" +
-                                       std::to_string(portRangeStop));
+        logger->logCheckpoint(true, "Reading configuration " + address + ", " +
+                                    "Port range: " + std::to_string(portRangeStart) + "-" +
+                                    std::to_string(portRangeStop));
     } else {
-        cursesHelper->checkpoint(false, "Reading configuration");
+        logger->logCheckpoint(false, "Reading configuration");
         cleanAndExit(SIGINT);
     }
 
-    roomAssigner = new RoomAssigner(cursesHelper, portRangeStart, portRangeStop,
-                                    setupServerSocket(cursesHelper, portRangeStart));
+    roomAssigner = new RoomAssigner(logger, portRangeStart, portRangeStop,
+                                    setupServerSocket(logger, portRangeStart));
 
     while (true) {
         std::string message = roomAssigner->refresh();
         std::string endpoint = splitMessage(message);
 
-        if (endpoint == "[ERROR_POLL_FAIL]" || endpoint == "[ERROR_POLL_TIMEOUT]") {
+        if (endpoint == "[ERROR_POLL_FAIL]") {
+            cleanAndExit(SIGINT);
+        } else if (endpoint == "[ERROR_POLL_TIMEOUT]") {
             cleanAndExit(SIGINT);
         } else if (endpoint == "[POLL_SUCCESS]") {
             for (int i = 0; i < roomAssigner->descriptorsSize && roomAssigner->ready > 0; ++i) {
-                int clientFd = roomAssigner->descriptors[i].fd;
+                int descriptor = roomAssigner->descriptors[i].fd;
                 message = roomAssigner->handleEvents(i);
                 endpoint = splitMessage(message);
 
                 if (endpoint == "[CREATE_ROOM]") {
                     int mapid = std::stoi(message);
-                    int port = roomAssigner->getFreePort();
-                    if (port != -1) {
-                        auto room = new Room(mapid, cursesHelper);
-                        room->id = std::to_string(port);
-                        writeData(cursesHelper, clientFd, "[CREATE_ROOM_SUCCESS];" + room->toString());
-                        roomAssigner->rooms.push_back(room);
+                    auto room = roomAssigner->createRoom(mapid);
+                    if (room != nullptr) {
                         roomThreads.push_back(std::thread(handleRoom, room));
+                        writeData(logger, descriptor, "[CREATE_ROOM_SUCCESS];" + room->toString());
                     } else {
-                        writeData(cursesHelper, clientFd, "[ERROR_SERVER_FULL];");
+                        writeData(logger, descriptor, "[ERROR_SERVER_FULL];");
                     }
                 } else if (endpoint == "[GET_ROOMS_COUNT]") {
-                    writeData(cursesHelper, clientFd,
+                    writeData(logger, descriptor,
                               "[GET_ROOMS_COUNT_SUCCESS];" + std::to_string(roomAssigner->rooms.size()) + ";");
                 } else if (endpoint == "[GET_ROOM_AT]") {
                     int id = std::stoi(message);
                     if (id >= 0 && id <= roomAssigner->rooms.size()) {
                         auto room = roomAssigner->rooms.at(static_cast<unsigned long>(id));
-                        writeData(cursesHelper, clientFd, "[GET_ROOM_AT_SUCCESS];" + room->toString());
+                        writeData(logger, descriptor, "[GET_ROOM_AT_SUCCESS];" + room->toString());
                     } else {
-                        writeData(cursesHelper, clientFd, "[ERROR_ROOM_NOT_FOUND];");
+                        writeData(logger, descriptor, "[ERROR_ROOM_NOT_FOUND];");
                     }
-                } else if (endpoint == "[ACCEPTING_CLIENT_SUCCESS]") {
-                    cursesHelper->checkpoint(true, endpoint + ";" + message);
                 } else if (endpoint == "[SHUTDOWN_CLIENT]") {
-                    cursesHelper->checkpoint(true, endpoint + ";" + message);
+                    logger->logCheckpoint(true, endpoint + ";" + message);
+                    continue;
                 } else if (endpoint == "[NO_EVENTS]") {
-
+                    continue;
+                } else if (endpoint == "[ACCEPTING_CLIENT_SUCCESS]") {
+                    logger->logCheckpoint(true, endpoint + ";" + message);
+                    continue;
+                } else if (endpoint == "[ERROR_ACCEPTING_CLIENT]") {
+                    logger->logCheckpoint(false, endpoint + ";" + message);
+                    cleanAndExit(SIGINT);
+                } else if (endpoint == "[ERROR_UNKNOWN_REVENTS]") {
+                    logger->logCheckpoint(false, endpoint + ";" + message);
+                    cleanAndExit(SIGINT);
+                } else if (endpoint == "[ERROR_SERVER_DOWN]") {
+                    logger->logCheckpoint(false, endpoint + ";" + message);
+                    cleanAndExit(SIGINT);
                 } else {
-                    cursesHelper->checkpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
+                    logger->logCheckpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
                     cleanAndExit(SIGINT);
                 }
             }
+        } else {
+            logger->logCheckpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
+            cleanAndExit(SIGINT);
         }
     }
 }
@@ -88,27 +98,27 @@ int main(int argc, char **argv) {
 void cleanAndExit(int) {
 
     running = false;
-    cursesHelper->print("Waiting for other threads to finish ...\n");
+    logger->logCheckpoint(true, "Waiting for other threads to finish ...\n");
 
     for (std::thread &roomThread: roomThreads) {
         roomThread.join();
-        cursesHelper->checkpoint(true, "Thread joined");
+        logger->logCheckpoint(true, "Thread joined");
     }
 
-    cursesHelper->print("Press any key to exit ...\n");
+    logger->logCheckpoint(true, "Press any key to exit ...\n");
     getch();
     delete roomAssigner;
-    delete cursesHelper;
+    delete logger;
     exit(0);
 }
 
-void handleRoom(Room *room) {
+void handleRoom(NetworkRoom *room) {
 
     auto startTime = std::chrono::system_clock::now();
 
-    int sock = setupServerSocket(cursesHelper, static_cast<short>(std::stoi(room->id)));
+    int sock = setupServerSocket(logger, room->port);
 
-    auto roomHandler = new RoomHandler(cursesHelper, room, sock);
+    auto roomHandler = new RoomHandler(logger, room, sock);
 
     bool forceQuit = false;
 
@@ -119,72 +129,85 @@ void handleRoom(Room *room) {
         std::string message = roomHandler->refresh();
         std::string endpoint = splitMessage(message);
 
-        if (endpoint == "[ERROR_POLL_FAIL]" || endpoint == "[ERROR_POLL_TIMEOUT]") {
+        if (endpoint == "[ERROR_POLL_FAIL]") {
+            forceQuit = true;
+        } else if (endpoint == "[ERROR_POLL_TIMEOUT]") {
             forceQuit = true;
         } else if (endpoint == "[POLL_SUCCESS]") {
             for (int i = 0; i < roomHandler->descriptorsSize && roomHandler->ready > 0; ++i) {
-                int clientFd = roomHandler->descriptors[i].fd;
+                int descriptor = roomHandler->descriptors[i].fd;
                 message = roomHandler->handleEvents(i);
                 endpoint = splitMessage(message);
 
-                int kokos = 1;
-
                 if (endpoint == "[JOIN]") {
-                    if (room->join(new Player(clientFd, "Gracz " + std::to_string(clientFd), 0, 0))) {
-                        writeData(cursesHelper, clientFd, "[JOIN_SUCCESS];" + room->toString());
-
-                        if (!room->running && room->isReady()) {
-                            room->running = true;
-                        }
+                    if (room->join(new NetworkPlayer(descriptor, "Gracz " + std::to_string(descriptor)))) {
+                        writeData(logger, descriptor, "[JOIN_SUCCESS];" + room->toString());
                     } else {
-                        writeData(cursesHelper, clientFd, "[ROOM_FULL];");
+                        writeData(logger, descriptor, "[ROOM_FULL];");
                     }
                 } else if (endpoint == "[LEAVE_ROOM]") {
-                    room->leave(clientFd);
+                    room->leave(descriptor);
                     for (auto player: room->players) {
-                        writeData(cursesHelper, player->id,
-                                  std::string("[LEAVE_ROOM];") + std::to_string(clientFd) + ";");
+                        writeData(logger, player->descriptor,
+                                  std::string("[LEAVE_ROOM];") + std::to_string(descriptor) + ";");
                     }
                 } else if (endpoint == "[MOVE]") {
-                    std::string x = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
+                    std::string x = splitMessage(message);
 
-                    std::string y = message.substr(0, message.find(delimiter));
-                    message.erase(0, message.find(delimiter) + delimiter.length());
+                    std::string y = splitMessage(message);
 
                     for (auto player: room->players) {
-                        writeData(cursesHelper, player->id,
-                                  std::string("[MOVE];") + std::to_string(clientFd) + ";" + x + ";" + y + ";");
+                        writeData(logger, player->descriptor,
+                                  std::string("[MOVE];") + std::to_string(descriptor) + ";" + x + ";" + y + ";");
                     }
                 } else if (endpoint == "[SPAWN_BOMB]") {
                     for (auto player: room->players) {
-                        writeData(cursesHelper, player->id,
-                                  std::string("[SPAWN_BOMB];") + std::to_string(clientFd)
+                        writeData(logger, player->descriptor,
+                                  std::string("[SPAWN_BOMB];") + std::to_string(descriptor)
                                   + ";" + std::to_string(elapsedTime.count() + 5000000) + ";");
                     }
                 } else if (endpoint == "[GET_STATUS]") {
-                    writeData(cursesHelper, clientFd,
-                              room->running ? "[STATUS_RUNNING];" + room->toString() : "[STATUS_WAITING];");
+                    writeData(logger, descriptor,
+                              room->isReady() ? "[STATUS_RUNNING];" + room->toString() : "[STATUS_WAITING];");
                 } else if (endpoint == "[GET_TIME]") {
-                    writeData(cursesHelper, clientFd, "[TIME];" + std::to_string(elapsedTime.count()) + ";");
-                } else if (endpoint == "[ACCEPTING_CLIENT_SUCCESS]") {
-                    cursesHelper->checkpoint(true, endpoint + ";" + message);
+                    writeData(logger, descriptor, "[TIME];" + std::to_string(elapsedTime.count()) + ";");
                 } else if (endpoint == "[SHUTDOWN_CLIENT]") {
-                    cursesHelper->checkpoint(true, endpoint + ";" + message);
+                    logger->logCheckpoint(true, endpoint + ";" + message + " on port " + std::to_string(room->port));
+                    room->leave(descriptor);
+                    for (auto player: room->players) {
+                        writeData(logger, player->descriptor,
+                                  std::string("[LEAVE_ROOM];") + std::to_string(descriptor) + ";");
+                    }
                 } else if (endpoint == "[NO_EVENTS]") {
-
+                    continue;
+                } else if (endpoint == "[ACCEPTING_CLIENT_SUCCESS]") {
+                    logger->logCheckpoint(true, endpoint + ";" + message + " on port " + std::to_string(room->port));
+                    continue;
+                } else if (endpoint == "[ERROR_ACCEPTING_CLIENT]") {
+                    logger->logCheckpoint(false, endpoint + ";" + message + " on port " + std::to_string(room->port));
+                    forceQuit = true;
+                } else if (endpoint == "[ERROR_UNKNOWN_REVENTS]") {
+                    logger->logCheckpoint(false, endpoint + ";" + message + " on port " + std::to_string(room->port));
+                    forceQuit = true;
+                } else if (endpoint == "[ERROR_SERVER_DOWN]") {
+                    logger->logCheckpoint(false, endpoint + ";" + message + " on port " + std::to_string(room->port));
+                    forceQuit = true;
                 } else {
-                    cursesHelper->checkpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
-                    cleanAndExit(SIGINT);
+                    logger->logCheckpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
+                    forceQuit = true;
                 }
             }
+        } else {
+            logger->logCheckpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
+            forceQuit = true;
         }
 
-        if (room->ended) {
+        if (room->hasEnded()) {
             forceQuit = true;
         }
     }
 
-    cursesHelper->checkpoint(true, "Room closing " + room->id);
+    logger->logCheckpoint(true, "Room closing " + std::to_string(room->port));
+    roomAssigner->removeRoom(room);
     delete roomHandler;
 };

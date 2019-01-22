@@ -19,12 +19,16 @@
 #include "../network_logic/ClientHandler.h"
 #include "../game_logic/CursesHelper.h"
 #include "../game_logic/Board.h"
-#include "../game_logic/Room.h"
+#include "../game_logic/GameRoom.h"
 #include "../game_logic/Board.h"
 
-std::mutex cursesMutex;
+#include "../utility/FileLogger.h"
+
+std::mutex listenerMutex;
 
 bool forceQuit;
+
+FileLogger *fileLogger;
 
 CursesHelper *cursesHelper;
 
@@ -32,7 +36,7 @@ std::string serverAddress;
 
 std::string roomHandlerServerPort;
 
-int main();
+int main(int argc, char* argv[]);
 
 void cleanAndExit(int);
 
@@ -46,7 +50,7 @@ int joinRoom(std::string port);
 
 int waitingForPlayers(int socket);
 
-int startGame(int socket, Room *room);
+int startGame(int socket, GameRoom *room);
 
 int backToMenu(std::string message);
 

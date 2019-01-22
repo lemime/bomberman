@@ -7,15 +7,15 @@
 
 #include "BoardTileFragment.h"
 #include "Triggerable.h"
-#include "Player.h"
+#include "GamePlayer.h"
 
 class Bomb : public BoardTileFragment, public Triggerable {
 
 private:
-    Player *player;
+    GamePlayer *player;
 
 public:
-    Bomb(Player *player, float triggerTime);
+    Bomb(GamePlayer *player, float triggerTime);
 
     ~Bomb() override = default;
 

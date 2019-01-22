@@ -122,7 +122,7 @@ void Board::spawnExplosion(Explosion *explosion) {
     triggerables.push_back(explosion);
 }
 
-void Board::spawnPlayer(Player *player) {
+void Board::spawnPlayer(GamePlayer *player) {
 
     for (auto slot : slots) {
         if (tiles[slot->y][slot->x]->isPassable()) {

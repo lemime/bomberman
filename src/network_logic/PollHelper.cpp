@@ -4,15 +4,15 @@
 
 #include "PollHelper.h"
 
-PollHelper::PollHelper(CursesHelper *cursesHelper, int serverDescriptor, int descriptorsCapacity)
-        : cursesHelper(cursesHelper), serverDescriptor(serverDescriptor), descriptorsCapacity(descriptorsCapacity) {
+PollHelper::PollHelper(Logger *logger, int serverDescriptor, int descriptorsCapacity)
+        : logger(logger), serverDescriptor(serverDescriptor), descriptorsCapacity(descriptorsCapacity) {
 
     descriptors = (pollfd *) malloc(sizeof(pollfd) * descriptorsCapacity);
     addServer(serverDescriptor);
 }
 
-PollHelper::PollHelper(CursesHelper *cursesHelper, int descriptorsCapacity)
-        : cursesHelper(cursesHelper), descriptorsCapacity(descriptorsCapacity) {
+PollHelper::PollHelper(Logger *logger, int descriptorsCapacity)
+        : logger(logger), descriptorsCapacity(descriptorsCapacity) {
 
     descriptors = (pollfd *) malloc(sizeof(pollfd) * descriptorsCapacity);
 }
@@ -69,7 +69,7 @@ std::string PollHelper::handleClientEvent(int descriptorIndex) {
     }
 
     if (revents & POLLIN) {
-        std::string receivedMsg = readData(cursesHelper, clientFd);
+        std::string receivedMsg = readData(logger, clientFd);
         if (receivedMsg != "") {
             return receivedMsg;
         } else {
@@ -103,10 +103,10 @@ std::string PollHelper::handleNewClient() {
     socklen_t clientAddrSize = sizeof(clientAddr);
 
     auto clientFd = accept(serverDescriptor, (sockaddr *) &clientAddr, &clientAddrSize);
-    cursesHelper->checkpoint(clientFd != -1, "Accepting new client with fd:" + std::to_string(clientFd));
+    logger->logCheckpoint(clientFd != -1, "Accepting new client with fd:" + std::to_string(clientFd));
     if (clientFd != -1) {
         addClient(clientFd);
-        cursesHelper->checkpoint(true, std::string("Setting up new connection with: ") +
+        logger->logCheckpoint(true, std::string("Setting up new connection with: ") +
                                        inet_ntoa(clientAddr.sin_addr) +
                                        ":" +
                                        std::to_string(ntohs(clientAddr.sin_port)));
