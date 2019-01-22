@@ -14,7 +14,7 @@ public:
 
     ~Floor() override = default;
 
-    bool destroy(int currentTime) override { return true; };
+    bool destroy() override { return true; };
 };
 
 #endif //BOMBERMAN_FLOOR_H

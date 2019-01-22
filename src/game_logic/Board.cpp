@@ -170,7 +170,7 @@ void Board::spreadExplosion(int currentTime, int x, int y, int x_offset, int y_o
         }
 
         if (tile->isDestructible()) {
-            tile->destroy(0);
+            tile->destroy();
         }
     };
 }

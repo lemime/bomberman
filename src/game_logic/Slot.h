@@ -14,7 +14,7 @@ public:
 
     ~Slot() override = default;
 
-    bool destroy(int currentTime) override { return true; };
+    bool destroy() override { return true; };
 };
 
 #endif //BOMBERMAN_SLOT_H

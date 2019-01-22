@@ -45,10 +45,10 @@ bool BoardTile::isPassable() {
     return true;
 }
 
-void BoardTile::destroy(int currentTime) {
+void BoardTile::destroy() {
 
-    erase(std::remove_if(begin(), end(), [currentTime](auto tile) {
-        return tile->isDestructible && tile->destroy(currentTime);
+    erase(std::remove_if(begin(), end(), [](auto tile) {
+        return tile->isDestructible && tile->destroy();
     }), end());
 }
 

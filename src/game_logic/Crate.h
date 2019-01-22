@@ -14,7 +14,7 @@ public:
 
     ~Crate() override {};
 
-    bool destroy(int currentTime) override { return true; };
+    bool destroy() override { return true; };
 };
 
 #endif //BOMBERMAN_CRATE_H

@@ -14,7 +14,7 @@ public:
 
     ~Wall() override = default;
 
-    bool destroy(int currentTime) override { return true; };
+    bool destroy() override { return true; };
 };
 
 #endif //BOMBERMAN_WALL_H

@@ -4,7 +4,7 @@
 
 #include "client.h"
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
 
     cursesHelper = new CursesHelper();
     fileLogger = new FileLogger(std::string("client-bomberman") + argv[1] + ".log");
@@ -176,7 +176,6 @@ int waitingForPlayers(int socket) {
     cursesHelper->printAtCenter("Waiting for another players to join");
 
     int keyVal;
-    cursesHelper->setNonblock(true);
     while (true) {
         keyVal = getch();
         if (keyVal == 127) {
@@ -193,12 +192,12 @@ int waitingForPlayers(int socket) {
             if (endpoint == "[STATUS_RUNNING]") {
                 std::string roomId = splitMessage(receivedMsg);
                 auto room = new GameRoom(receivedMsg, cursesHelper);
-                cursesHelper->setNonblock(false);
                 return startGame(socket, room);
             } else if (endpoint == "[STATUS_WAITING]") {
                 continue;
+            } else if (endpoint == "[STATUS_READY]") {
+//                
             } else {
-                cursesHelper->setNonblock(false);
                 shutdown(socket, SHUT_RDWR);
                 close(socket);
                 return backToMenu("Unhandled error: waitingForPlayers");
@@ -212,7 +211,6 @@ void keyboardListener(int fd, GameRoom *room) {
     int keyVal;
 
     while (!forceQuit) {
-        cursesHelper->setNonblock(true);
         cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
         cursesHelper->setContext(0);
         cursesHelper->clear();
@@ -271,8 +269,6 @@ void keyboardListener(int fd, GameRoom *room) {
             }
         }
     }
-
-    cursesHelper->setNonblock(false);
 }
 
 int startGame(int socket, GameRoom *room) {
@@ -333,10 +329,14 @@ int startGame(int socket, GameRoom *room) {
                     if (player != nullptr) {
                         room->board->spawnBomb(new Bomb(player, triggerTime));
                     }
+                } else if (endpoint == "[LEAVE_ROOM]") {
+                    int playerId = std::stoi(splitMessage(message));
+                    auto player = room->getPlayer(playerId);
+                    if (player != nullptr) {
+                        player->lives = 0;
+                    }
                 } else if (endpoint == "[ALL_LEAVE_ROOM]") {
-                    listenerMutex.lock();
-                    writeData(fileLogger, socket, "[LEAVE_ROOM];");
-                    listenerMutex.unlock();
+                    forceQuit = true;
                 } else if (endpoint == "[ALL_MOVE]") {
                     listenerMutex.lock();
                     writeData(fileLogger, socket, "[MOVE];" + message);
@@ -350,14 +350,14 @@ int startGame(int socket, GameRoom *room) {
                     writeData(fileLogger, socket, "[GET_TIME];");
                     listenerMutex.unlock();
                 } else if (endpoint == "[ACCEPTING_CLIENT_SUCCESS]") {
-                    fileLogger->checkpoint(true, endpoint + ";" + message);
+                    fileLogger->logCheckpoint(true, endpoint + ";" + message);
                 } else if (endpoint == "[SHUTDOWN_CLIENT]") {
-                    fileLogger->checkpoint(true, endpoint + ";" + message);
+                    fileLogger->logCheckpoint(true, endpoint + ";" + message);
                 } else if (endpoint == "[NO_EVENTS]") {
 
                 } else {
-                    fileLogger->checkpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
-                    cleanAndExit(SIGINT);
+                    fileLogger->logCheckpoint(false, "[ERROR_UNKNOWN_ENDPOINT];");
+                    forceQuit = true;
                 }
             }
         }
@@ -371,8 +371,6 @@ int startGame(int socket, GameRoom *room) {
 
     delete clientHandler;
 
-    cursesHelper->setNonblock(false);
-
     shutdown(socket, SHUT_RDWR);
     close(socket);
     return backToMenu("The game has ended");
@@ -380,7 +378,7 @@ int startGame(int socket, GameRoom *room) {
 
 int backToMenu(std::string message) {
 
-    std::vector<std::string> options = {"Back"};
+    std::vector<std::string> options = {"Back", "Back"};
     cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
     cursesHelper->setContext(1);
     cursesHelper->printAtCenter(message);

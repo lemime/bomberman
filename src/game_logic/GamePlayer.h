@@ -32,7 +32,7 @@ public:
 
     bool isAlive();
 
-    bool destroy(int currentTime) override;
+    bool destroy() override;
 };
 
 #endif //BOMBERMAN_PLAYER_H

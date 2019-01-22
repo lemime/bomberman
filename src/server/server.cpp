@@ -146,7 +146,7 @@ void handleRoom(NetworkRoom *room) {
                     } else {
                         writeData(logger, descriptor, "[ROOM_FULL];");
                     }
-                } else if (endpoint == "[LEAVE_ROOM]") {
+                } else if (endpoint == "[ALL_LEAVE_ROOM]") {
                     room->leave(descriptor);
                     for (auto player: room->players) {
                         writeData(logger, player->descriptor,
@@ -168,8 +168,15 @@ void handleRoom(NetworkRoom *room) {
                                   + ";" + std::to_string(elapsedTimeMs + 2000) + ";");
                     }
                 } else if (endpoint == "[GET_STATUS]") {
-                    writeData(logger, descriptor,
-                              room->isReady() ? "[STATUS_RUNNING];" + room->toString() : "[STATUS_WAITING];");
+                    std::string status;
+                    if (room->isReady()) {
+                        status = "[STATUS_READY];";
+                    } else if (room->started) {
+                        status = "[STATUS_RUNNING];" + room->toString();
+                    } else {
+                        status = "[STATUS_WAITING];";
+                    }
+                    writeData(logger, descriptor, status);
                 } else if (endpoint == "[GET_TIME]") {
                     writeData(logger, descriptor, "[TIME];" + std::to_string(elapsedTimeMs) + ";");
                 } else if (endpoint == "[SHUTDOWN_CLIENT]") {

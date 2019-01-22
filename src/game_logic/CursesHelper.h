@@ -44,8 +44,6 @@ public:
     void setContext(int window);
 
     void log(const std::string &message) override;
-
-    void setNonblock(bool value);
 };
 
 #endif //BOMBERMAN_CURSESHELPER_H

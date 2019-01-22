@@ -15,7 +15,7 @@ public:
 
     ~Explosion() override = default;
 
-    bool destroy(int currentTime) override { return true; };
+    bool destroy() override { return true; };
 };
 
 #endif //BOMBERMAN_EXPLOSION_H

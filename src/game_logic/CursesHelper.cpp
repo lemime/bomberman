@@ -29,11 +29,11 @@ int CursesHelper::handleSelection(std::vector<std::string> options) {
 
     int keyVal;
     int cursorPos = 0;
-
     while (true) {
         clear();
         printOptions(options, cursorPos);
         keyVal = getch();
+
         switch (keyVal) {
             case 259: {
                 cursorPos = static_cast<int>((cursorPos - 1) % options.size());
@@ -50,6 +50,9 @@ int CursesHelper::handleSelection(std::vector<std::string> options) {
                 return -1;
             }
             default: {
+                if (keyVal != -1) {
+                    int kokos = 1;
+                }
                 break;
             }
         }
@@ -118,12 +121,4 @@ void CursesHelper::setContext(int window) {
 void CursesHelper::log(const std::string &message) {
     print(message);
 
-}
-
-void CursesHelper::setNonblock(bool condition) {
-    if (condition) {
-        timeout(50);
-    } else {
-        timeout(-1);
-    }
 }
