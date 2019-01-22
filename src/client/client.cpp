@@ -2,6 +2,7 @@
 // Created by Kamila Kolenda on 2018-12-31.
 //
 
+#include <csignal>
 #include "client.h"
 
 int main(int argc, char *argv[]) {
@@ -324,7 +325,7 @@ int startGame(int socket, GameRoom *room) {
 
                 if (endpoint == "[TIME]") {
                     currentTime = std::stoi(splitMessage(message));
-                    if (currentTime > 60000) {
+                    if (currentTime > 600000) {
                         for (auto player: room->players) {
                             player->lives = 0;
                         }

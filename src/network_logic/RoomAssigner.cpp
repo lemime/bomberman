@@ -2,6 +2,7 @@
 // Created by Kamil Juszczak on 2019-01-19.
 //
 
+#include <algorithm>
 #include "RoomAssigner.h"
 
 RoomAssigner::RoomAssigner(Logger *logger, short portRangeStart, short portRangeStop, int serverDescriptor)

@@ -3,6 +3,7 @@
 //
 
 #include "NetworkHelper.h"
+#include <cstring>
 
 std::string readData(Logger *logger, int socketDescriptor) {
 

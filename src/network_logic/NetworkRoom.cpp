@@ -2,6 +2,7 @@
 // Created by Kamil Juszczak on 2019-01-22.
 //
 
+#include <algorithm>
 #include "NetworkRoom.h"
 
 std::string NetworkRoom::toString() {
