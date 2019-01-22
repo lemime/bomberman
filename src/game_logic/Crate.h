@@ -14,7 +14,7 @@ public:
 
     ~Crate() override {};
 
-    bool destroy() override { return true; };
+    int destroy() override { return -1; };
 };
 
 #endif //BOMBERMAN_CRATE_H

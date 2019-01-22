@@ -169,14 +169,16 @@ void handleRoom(NetworkRoom *room) {
                     }
                 } else if (endpoint == "[GET_STATUS]") {
                     std::string status;
-                    if (room->isReady()) {
-                        status = "[STATUS_READY];";
+                    if (room->isReady() && !room->started && room->ownerDescriptor == descriptor) {
+                        status = "[STATUS_READY];" + std::to_string(room->ownerDescriptor) + ";";
                     } else if (room->started) {
                         status = "[STATUS_RUNNING];" + room->toString();
                     } else {
                         status = "[STATUS_WAITING];";
                     }
                     writeData(logger, descriptor, status);
+                } else if (endpoint == "[START_GAME]") {
+                    room->started = true;
                 } else if (endpoint == "[GET_TIME]") {
                     writeData(logger, descriptor, "[TIME];" + std::to_string(elapsedTimeMs) + ";");
                 } else if (endpoint == "[SHUTDOWN_CLIENT]") {

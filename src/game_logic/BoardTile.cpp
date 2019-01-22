@@ -45,14 +45,27 @@ bool BoardTile::isPassable() {
     return true;
 }
 
-void BoardTile::destroy() {
+int BoardTile::destroy() {
 
-    erase(std::remove_if(begin(), end(), [](auto tile) {
-        return tile->isDestructible && tile->destroy();
+    int result = 0;
+    erase(std::remove_if(begin(), end(), [&result](auto tile) {
+        if (tile->isDestructible) {
+            int points = tile->destroy();
+            if (points == -1) {
+                return true;
+            } else {
+                result += points;
+                return false;
+            }
+        } else {
+            return false;
+        }
     }), end());
+    return result;
 }
 
 BoardTile::~BoardTile() {
+
     erase(std::remove_if(begin(), end(), [this](auto tile) {
         delete tile;
         return true;

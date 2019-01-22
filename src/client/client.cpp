@@ -144,9 +144,7 @@ int joinRoom(std::string port) {
 
     for (int i = 0; i < 5 && socket == -1; i++) {
         socket = connectToSocket(fileLogger, serverAddress, port);
-        timeout(1000);
-        getch();
-        timeout(-1);
+        sleep(1);
     }
 
     if (socket == -1) {
@@ -171,17 +169,26 @@ int joinRoom(std::string port) {
 
 int waitingForPlayers(int socket) {
 
+    bool ready = false;
+    bool set = false;
+    bool started = false;
     cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
     cursesHelper->setContext(0);
     cursesHelper->printAtCenter("Waiting for another players to join");
 
+    timeout(50);
     int keyVal;
     while (true) {
         keyVal = getch();
         if (keyVal == 127) {
             shutdown(socket, SHUT_RDWR);
             close(socket);
+            timeout(-1);
             return backToMenu("You have left the room");
+        } else if (keyVal != -1 && ready && !started) {
+            std::string msgToSend = "[START_GAME];";
+            writeData(fileLogger, socket, msgToSend);
+            started = true;
         } else {
             std::string msgToSend = "[GET_STATUS];";
             writeData(fileLogger, socket, msgToSend);
@@ -192,14 +199,23 @@ int waitingForPlayers(int socket) {
             if (endpoint == "[STATUS_RUNNING]") {
                 std::string roomId = splitMessage(receivedMsg);
                 auto room = new GameRoom(receivedMsg, cursesHelper);
+                timeout(-1);
                 return startGame(socket, room);
             } else if (endpoint == "[STATUS_WAITING]") {
                 continue;
             } else if (endpoint == "[STATUS_READY]") {
-//                
+                int id = std::stoi(splitMessage(receivedMsg));
+                if (!set) {
+                    set = true;
+                    cursesHelper->clear();
+                    cursesHelper->printAtCenter("Press any button to start");
+                }
+                ready = true;
+                continue;
             } else {
                 shutdown(socket, SHUT_RDWR);
                 close(socket);
+                timeout(-1);
                 return backToMenu("Unhandled error: waitingForPlayers");
             }
         }
@@ -210,6 +226,7 @@ void keyboardListener(int fd, GameRoom *room) {
 
     int keyVal;
 
+    timeout(50);
     while (!forceQuit) {
         cursesHelper->windowHelper->setLayout(1, 1, {1}, {1});
         cursesHelper->setContext(0);
@@ -269,6 +286,7 @@ void keyboardListener(int fd, GameRoom *room) {
             }
         }
     }
+    timeout(-1);
 }
 
 int startGame(int socket, GameRoom *room) {
@@ -306,9 +324,15 @@ int startGame(int socket, GameRoom *room) {
 
                 if (endpoint == "[TIME]") {
                     currentTime = std::stoi(splitMessage(message));
-                    room->board->handleTriggerables(currentTime);
-                    room->board->cleanExplosions(currentTime);
-                    room->board->createExplosions(currentTime);
+                    if (currentTime > 60000) {
+                        for (auto player: room->players) {
+                            player->lives = 0;
+                        }
+                    } else {
+                        room->board->handleTriggerables(currentTime);
+                        room->board->cleanExplosions(currentTime);
+                        room->board->createExplosions(currentTime);
+                    }
                 } else if (endpoint == "[MOVE]") {
                     int playerId = std::stoi(splitMessage(message));
 
@@ -317,7 +341,7 @@ int startGame(int socket, GameRoom *room) {
                     int yOffset = std::stoi(splitMessage(message));
 
                     auto player = room->getPlayer(playerId);
-                    if (player != nullptr) {
+                    if (player != nullptr && player->isAlive()) {
                         room->board->moveFragment(player, player->x + xOffset, player->y + yOffset);
                     }
                 } else if (endpoint == "[SPAWN_BOMB]") {
@@ -326,7 +350,7 @@ int startGame(int socket, GameRoom *room) {
                     int triggerTime = std::stoi(splitMessage(message));
 
                     auto player = room->getPlayer(playerId);
-                    if (player != nullptr) {
+                    if (player != nullptr && player->canPlaceBomb()) {
                         room->board->spawnBomb(new Bomb(player, triggerTime));
                     }
                 } else if (endpoint == "[LEAVE_ROOM]") {
@@ -369,11 +393,16 @@ int startGame(int socket, GameRoom *room) {
 
     listener.join();
 
+    std::string scores;
+    for(auto player: room->players) {
+        scores += player->name + ": " + std::to_string(player->points) + ", ";
+    }
+
     delete clientHandler;
 
     shutdown(socket, SHUT_RDWR);
     close(socket);
-    return backToMenu("The game has ended");
+    return backToMenu("The game has ended, players score: " + scores);
 }
 
 int backToMenu(std::string message) {
@@ -381,7 +410,7 @@ int backToMenu(std::string message) {
     std::vector<std::string> options = {"Back", "Back"};
     cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
     cursesHelper->setContext(1);
-    cursesHelper->printAtCenter(message);
+    cursesHelper->print(message);
     cursesHelper->setContext(0);
     cursesHelper->handleSelection(options);
     return selectGameType();

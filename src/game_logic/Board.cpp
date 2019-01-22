@@ -71,6 +71,7 @@ Board::Board(std::string path, CursesHelper *cursesHelper) : cursesHelper(curses
 }
 
 Board::~Board() {
+
     for (auto player: players) {
         removeFragment(player);
     }
@@ -142,13 +143,13 @@ int Board::getSlotsSize() {
 
 void Board::createExplosions(int currentTime) {
 
-    bombs.erase(std::remove_if(bombs.begin(), bombs.end(), [this, currentTime](auto bomb) {
+    bombs.erase(std::remove_if(bombs.begin(), bombs.end(), [this, currentTime](Bomb *bomb) {
         if (bomb->triggered) {
-            spreadExplosion(currentTime, bomb->x, bomb->y, 0, 0, bomb->explosionSize);
-            spreadExplosion(currentTime, bomb->x, bomb->y, 1, 0, bomb->explosionSize);
-            spreadExplosion(currentTime, bomb->x, bomb->y, -1, 0, bomb->explosionSize);
-            spreadExplosion(currentTime, bomb->x, bomb->y, 0, 1, bomb->explosionSize);
-            spreadExplosion(currentTime, bomb->x, bomb->y, 0, -1, bomb->explosionSize);
+            spreadExplosion(bomb->player, currentTime, bomb->x, bomb->y, 0, 0, bomb->explosionSize);
+            spreadExplosion(bomb->player, currentTime, bomb->x, bomb->y, 1, 0, bomb->explosionSize);
+            spreadExplosion(bomb->player, currentTime, bomb->x, bomb->y, -1, 0, bomb->explosionSize);
+            spreadExplosion(bomb->player, currentTime, bomb->x, bomb->y, 0, 1, bomb->explosionSize);
+            spreadExplosion(bomb->player, currentTime, bomb->x, bomb->y, 0, -1, bomb->explosionSize);
             removeFragment(bomb);
             delete bomb;
             return true;
@@ -157,7 +158,8 @@ void Board::createExplosions(int currentTime) {
     }), bombs.end());
 }
 
-void Board::spreadExplosion(int currentTime, int x, int y, int x_offset, int y_offset, int explosionSize) {
+void Board::spreadExplosion(GamePlayer *player, int currentTime, int x, int y, int x_offset, int y_offset,
+                            int explosionSize) {
 
     if (explosionSize > 0 && x + x_offset >= 0 && x + x_offset < xSize && y + y_offset >= 0 && y + y_offset < ySize) {
         BoardTile *tile = tiles[y + y_offset][x + x_offset];
@@ -166,11 +168,11 @@ void Board::spreadExplosion(int currentTime, int x, int y, int x_offset, int y_o
         }
 
         if (tile->isPassable()) {
-            spreadExplosion(currentTime,x + x_offset, y + y_offset, x_offset, y_offset, explosionSize - 1);
+            spreadExplosion(player, currentTime, x + x_offset, y + y_offset, x_offset, y_offset, explosionSize - 1);
         }
 
         if (tile->isDestructible()) {
-            tile->destroy();
+            player->points += tile->destroy();
         }
     };
 }

@@ -14,7 +14,7 @@ public:
 
     ~Slot() override = default;
 
-    bool destroy() override { return true; };
+    int destroy() override { return -1; };
 };
 
 #endif //BOMBERMAN_SLOT_H

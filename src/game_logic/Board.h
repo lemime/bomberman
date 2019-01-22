@@ -80,7 +80,7 @@ public:
 
     void createExplosions(int currentTime);
 
-    void spreadExplosion(int currentTime, int x, int y, int x_offset, int y_offset, int explosionSize);
+    void spreadExplosion(GamePlayer* player, int currentTime, int x, int y, int x_offset, int y_offset, int explosionSize);
 
     void cleanExplosions(int currentTime);
 

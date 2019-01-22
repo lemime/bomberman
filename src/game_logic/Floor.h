@@ -14,7 +14,7 @@ public:
 
     ~Floor() override = default;
 
-    bool destroy() override { return true; };
+    int destroy() override { return -1; };
 };
 
 #endif //BOMBERMAN_FLOOR_H

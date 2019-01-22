@@ -17,6 +17,8 @@ private:
 public:
     std::vector<NetworkPlayer *> players;
 
+    bool started = false;
+
     int ownerDescriptor = -1;
 
     NetworkRoom(int mapid);

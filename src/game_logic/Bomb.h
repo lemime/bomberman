@@ -11,17 +11,16 @@
 
 class Bomb : public BoardTileFragment, public Triggerable {
 
-private:
+public:
     GamePlayer *player;
 
-public:
     Bomb(GamePlayer *player, float triggerTime);
 
     ~Bomb() override = default;
 
     int explosionSize;
 
-    bool destroy() override;
+    int destroy() override;
 };
 
 #endif //BOMBERMAN_BOMB_H

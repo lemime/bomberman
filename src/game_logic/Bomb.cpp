@@ -10,8 +10,8 @@ Bomb::Bomb(GamePlayer *player, float triggerTime)
     player->placedBombs++;
 }
 
-bool Bomb::destroy() {
+int Bomb::destroy() {
     triggered = true;
     player->placedBombs--;
-    return false;
+    return 0;
 }

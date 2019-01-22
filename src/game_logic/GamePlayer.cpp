@@ -16,12 +16,12 @@ bool GamePlayer::canPlaceBomb() {
     return maxBombs > placedBombs && isAlive();
 }
 
-bool GamePlayer::destroy() {
+int GamePlayer::destroy() {
 
     lives--;
     symbol = " x ";
     isPassable = true;
-    return false;
+    return 1;
 }
 
 bool GamePlayer::isAlive() {

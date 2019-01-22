@@ -14,6 +14,8 @@ class GamePlayer : public BoardTileFragment {
 public:
     int id;
 
+    int points = 0;
+
     std::string name;
 
     int maxBombs;
@@ -32,7 +34,7 @@ public:
 
     bool isAlive();
 
-    bool destroy() override;
+    int destroy() override;
 };
 
 #endif //BOMBERMAN_PLAYER_H
