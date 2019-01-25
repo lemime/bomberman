@@ -7,8 +7,12 @@
 
 int main(int argc, char *argv[]) {
 
+    char* logName = const_cast<char *>("");
+    if (argc == 2) {
+        logName = argv[1];
+    }
     cursesHelper = new CursesHelper();
-    fileLogger = new FileLogger(std::string("client-bomberman") + argv[1] + ".log");
+    fileLogger = new FileLogger(std::string("client-bomberman") + logName + ".log");
 
     signal(SIGINT, cleanAndExit);
 
@@ -314,8 +318,11 @@ int startGame(int socket, GameRoom *room) {
 
         std::string endpoint = splitMessage(message);
 
-        if (endpoint == "[ERROR_POLL_FAIL]" || endpoint == "[ERROR_POLL_TIMEOUT]") {
+        if (endpoint == "[ERROR_POLL_FAIL]") {
             cleanAndExit(SIGINT);
+        } else if (endpoint == "[ERROR_POLL_TIMEOUT]") {
+            forceQuit = true;
+            return backToMenu("Server is not responding");
         } else if (endpoint == "[POLL_SUCCESS]") {
             for (int i = 0; i < clientHandler->descriptorsSize && clientHandler->ready > 0; ++i) {
                 listenerMutex.lock();
@@ -408,7 +415,7 @@ int startGame(int socket, GameRoom *room) {
 
 int backToMenu(std::string message) {
 
-    std::vector<std::string> options = {"Back", "Back"};
+    std::vector<std::string> options = {"Back"};
     cursesHelper->windowHelper->setLayout(1, 2, {1}, {0.25, 1});
     cursesHelper->setContext(1);
     cursesHelper->print(message);

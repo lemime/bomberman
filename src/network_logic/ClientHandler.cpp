@@ -5,7 +5,7 @@
 #include "ClientHandler.h"
 
 ClientHandler::ClientHandler(Logger *logger, GameRoom *room)
-        : room(room), PollHelper(logger, 2) {}
+        : room(room), PollHelper(logger, 2, true) {}
 
 ClientHandler::~ClientHandler() {
 

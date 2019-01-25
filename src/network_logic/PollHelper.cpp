@@ -4,15 +4,15 @@
 
 #include "PollHelper.h"
 
-PollHelper::PollHelper(Logger *logger, int serverDescriptor, int descriptorsCapacity)
-        : logger(logger), serverDescriptor(serverDescriptor), descriptorsCapacity(descriptorsCapacity) {
+PollHelper::PollHelper(Logger *logger, int serverDescriptor, int descriptorsCapacity, bool timeout)
+        : logger(logger), timeout(timeout), serverDescriptor(serverDescriptor), descriptorsCapacity(descriptorsCapacity) {
 
     descriptors = (pollfd *) malloc(sizeof(pollfd) * descriptorsCapacity);
     addServer(serverDescriptor);
 }
 
-PollHelper::PollHelper(Logger *logger, int descriptorsCapacity)
-        : logger(logger), descriptorsCapacity(descriptorsCapacity) {
+PollHelper::PollHelper(Logger *logger, int descriptorsCapacity, bool timeout)
+        : logger(logger), timeout(timeout), descriptorsCapacity(descriptorsCapacity) {
 
     descriptors = (pollfd *) malloc(sizeof(pollfd) * descriptorsCapacity);
 }
@@ -132,7 +132,7 @@ std::string PollHelper::handleEvents(int i) {
 
 std::string PollHelper::refresh() {
 
-    ready = poll(descriptors, descriptorsSize, -1);
+    ready = poll(descriptors, descriptorsSize, timeout ? 5000 : -1);
     if (ready < 0) {
         return "[ERROR_POLL_FAIL];";
     } else if (ready == 0) {

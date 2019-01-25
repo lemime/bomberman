@@ -17,6 +17,8 @@
 
 class PollHelper {
 private:
+    bool timeout;
+
     Logger *logger;
 
     int descriptorsCapacity = 4;
@@ -34,9 +36,9 @@ public:
 
     pollfd *descriptors;
 
-    PollHelper(Logger *logger, int serverDescriptor, int descriptorsCapacity);
+    PollHelper(Logger *logger, int serverDescriptor, int descriptorsCapacity, bool timeout = false);
 
-    PollHelper(Logger *logger, int descriptorsCapacity);
+    PollHelper(Logger *logger, int descriptorsCapacity, bool timeout = false);
 
     virtual ~PollHelper();
 
